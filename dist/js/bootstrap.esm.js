@@ -718,15 +718,13 @@ class BaseComponent extends Config {
     const splitOverrides = flat => {
       const parentDefault = parentClass.Default || {};
       const parentDefaultType = parentClass.DefaultType || {};
-      const parentConfigConstants = parentClass.ConfigConstants || {};
+      const configConstantOverrides = {};
       const newDefault = {};
       const newDefaultType = {};
-      const newConfigConstants = {};
 
       // Merge all parent values first
       Object.assign(newDefault, parentDefault);
       Object.assign(newDefaultType, parentDefaultType);
-      Object.assign(newConfigConstants, parentConfigConstants);
 
       // Classify incoming overrides
       for (const [key, value] of Object.entries(flat)) {
@@ -748,9 +746,16 @@ class BaseComponent extends Config {
           }
         } else {
           // Otherwise treat as structural constant
-          newConfigConstants[key] = value;
+          configConstantOverrides[key] = value;
         }
       }
+
+      // Recompute structural constants from parent class logic so derived values
+      // (e.g. selectors composed from class-name constants) stay in sync.
+      const newConfigConstants = typeof parentClass.getConfigConstants === 'function' ? parentClass.getConfigConstants(configConstantOverrides) : {
+        ...(parentClass.ConfigConstants || {}),
+        ...configConstantOverrides
+      };
       return {
         newDefault,
         newDefaultType,
