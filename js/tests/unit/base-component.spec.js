@@ -129,6 +129,62 @@ describe('Base Component', () => {
         expect(Custom.DefaultType).toEqual({})
         expect(Custom.ConfigConstants.CLASS_NAME_ACTIVE).toEqual('active')
       })
+
+      it('extendDefaultConfig should fallback when parent getConfigConstants is not a function', () => {
+        class NonFunctionConfigConstants extends BaseComponent {
+          static get NAME() {
+            return 'non-function-config-constants'
+          }
+
+          static get ConfigConstants() {
+            return { BASE: 'base-value' }
+          }
+        }
+
+        // Simulate a legacy/invalid static shape to cover fallback path.
+        NonFunctionConfigConstants.getConfigConstants = null
+
+        const Custom = NonFunctionConfigConstants.extendDefaultConfig({ CUSTOM: 'custom-value' })
+
+        expect(Custom.ConfigConstants.BASE).toEqual('base-value')
+        expect(Custom.ConfigConstants.CUSTOM).toEqual('custom-value')
+      })
+
+      it('derived constant should be recomputed from inputs when creating a subclass', () => {
+        // Illustrates the core problem: when SELECTOR_ACTIVES is derived from CLASS_NAME_COLLAPSE
+        // inside getConfigConstants, a subclass overriding CLASS_NAME_COLLAPSE must receive a
+        // freshly-recomputed SELECTOR_ACTIVES — not the frozen parent value.
+        class DerivedComponent extends BaseComponent {
+          static get NAME() {
+            return 'derived'
+          }
+
+          static getConfigConstants(overrides = {}) {
+            const CLASS_NAME_COLLAPSE = overrides.CLASS_NAME_COLLAPSE ?? 'collapse'
+            // SELECTOR_ACTIVES is derived from CLASS_NAME_COLLAPSE.
+            const SELECTOR_ACTIVES = overrides.SELECTOR_ACTIVES ?? `.${CLASS_NAME_COLLAPSE}.show`
+            return { CLASS_NAME_COLLAPSE, SELECTOR_ACTIVES }
+          }
+
+          static get ConfigConstants() {
+            return DerivedComponent.getConfigConstants()
+          }
+        }
+
+        // Baseline: derived constant reflects the default base constant.
+        expect(DerivedComponent.ConfigConstants.CLASS_NAME_COLLAPSE).toEqual('collapse')
+        expect(DerivedComponent.ConfigConstants.SELECTOR_ACTIVES).toEqual('.collapse.show')
+
+        // Subclass overrides the base constant.  The derived constant must be recomputed
+        // from the new input, not inherited verbatim from the parent.
+        const VeComponent = DerivedComponent.extendDefaultConfig({
+          CLASS_NAME_COLLAPSE: 've-collapse'
+        })
+
+        expect(VeComponent.ConfigConstants.CLASS_NAME_COLLAPSE).toEqual('ve-collapse')
+        // Without the fix, this would still be '.collapse.show' (parent's frozen value).
+        expect(VeComponent.ConfigConstants.SELECTOR_ACTIVES).toEqual('.ve-collapse.show')
+      })
     })
 
     describe('extendDefaultConfig classification', () => {
