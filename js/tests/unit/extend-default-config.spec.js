@@ -235,25 +235,25 @@ describe('extendDefaultConfig', () => {
 
     it('should expose ConfigConstants with all expected structural keys', () => {
       const keys = Object.keys(Dropdown.ConfigConstants)
-      for (const key of ['CLASS_NAME_SHOW', 'SELECTOR_DATA_TOGGLE', 'SELECTOR_MENU', 'PLACEMENT_BOTTOM']) {
+      for (const key of ['CLASS_NAME_SHOW_TRIGGER', 'CLASS_NAME_SHOW_MENU', 'SELECTOR_DATA_TOGGLE', 'SELECTOR_MENU', 'PLACEMENT_BOTTOM']) {
         expect(keys).toContain(key)
       }
     })
 
-    it('extendDefaultConfig: CLASS_NAME_SHOW override should land in ConfigConstants', () => {
-      const Custom = Dropdown.extendDefaultConfig({ CLASS_NAME_SHOW: 'is-open' })
-      expect(Custom.ConfigConstants.CLASS_NAME_SHOW).toBe('is-open')
-      expect(Dropdown.ConfigConstants.CLASS_NAME_SHOW).toBe('show')
+    it('extendDefaultConfig: CLASS_NAME_SHOW_MENU override should land in ConfigConstants', () => {
+      const Custom = Dropdown.extendDefaultConfig({ CLASS_NAME_SHOW_MENU: 'is-open' })
+      expect(Custom.ConfigConstants.CLASS_NAME_SHOW_MENU).toBe('is-open')
+      expect(Dropdown.ConfigConstants.CLASS_NAME_SHOW_MENU).toBe('show')
     })
 
-    it('extendDefaultConfig: CLASS_NAME_SHOW override — instance uses custom class when shown', () => {
+    it('extendDefaultConfig: CLASS_NAME_SHOW_MENU override — instance uses custom class on menu when shown', () => {
       return new Promise(resolve => {
         fixtureEl.innerHTML = dropdownFixture()
         const toggleEl = fixtureEl.querySelector('[data-bs-toggle="dropdown"]')
         const menuEl = fixtureEl.querySelector('.dropdown-menu')
 
         const CustomDropdown = Dropdown.extendDefaultConfig({
-          CLASS_NAME_SHOW: 'is-open'
+          CLASS_NAME_SHOW_MENU: 'is-open'
         })
         const dropdown = new CustomDropdown(toggleEl)
 
@@ -276,9 +276,9 @@ describe('extendDefaultConfig', () => {
     })
 
     it('extendDefaultConfig: structural constant override should not appear in Default', () => {
-      const Custom = Dropdown.extendDefaultConfig({ CLASS_NAME_SHOW: 'is-open' })
-      expect(Custom.Default.CLASS_NAME_SHOW).toBeUndefined()
-      expect(Custom.ConfigConstants.CLASS_NAME_SHOW).toBe('is-open')
+      const Custom = Dropdown.extendDefaultConfig({ CLASS_NAME_SHOW_MENU: 'is-open' })
+      expect(Custom.Default.CLASS_NAME_SHOW_MENU).toBeUndefined()
+      expect(Custom.ConfigConstants.CLASS_NAME_SHOW_MENU).toBe('is-open')
     })
   })
 

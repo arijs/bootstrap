@@ -87,7 +87,8 @@ class Dropdown extends BaseComponent {
       ARROW_DOWN_KEY: 'ArrowDown',
       RIGHT_MOUSE_BUTTON: 2,
 
-      CLASS_NAME_SHOW: 'show',
+      CLASS_NAME_SHOW_TRIGGER: 'show',
+      CLASS_NAME_SHOW_MENU: 'show',
       CLASS_NAME_DROPUP: 'dropup',
       CLASS_NAME_DROPEND: 'dropend',
       CLASS_NAME_DROPSTART: 'dropstart',
@@ -128,7 +129,7 @@ class Dropdown extends BaseComponent {
       return
     }
 
-    const { CLASS_NAME_SHOW, SELECTOR_NAVBAR_NAV } = this.constructor.ConfigConstants
+    const { CLASS_NAME_SHOW_TRIGGER, CLASS_NAME_SHOW_MENU, SELECTOR_NAVBAR_NAV } = this.constructor.ConfigConstants
     const EVENT_SHOW = `show${this.constructor.EVENT_KEY}`
     const EVENT_SHOWN = `shown${this.constructor.EVENT_KEY}`
 
@@ -157,8 +158,8 @@ class Dropdown extends BaseComponent {
     this._element.focus()
     this._element.setAttribute('aria-expanded', true)
 
-    this._menu.classList.add(CLASS_NAME_SHOW)
-    this._element.classList.add(CLASS_NAME_SHOW)
+    this._menu.classList.add(CLASS_NAME_SHOW_MENU)
+    this._element.classList.add(CLASS_NAME_SHOW_TRIGGER)
     EventHandler.trigger(this._element, EVENT_SHOWN, relatedTarget)
   }
 
@@ -191,7 +192,7 @@ class Dropdown extends BaseComponent {
 
   // Private
   _completeHide(relatedTarget) {
-    const { CLASS_NAME_SHOW } = this.constructor.ConfigConstants
+    const { CLASS_NAME_SHOW_TRIGGER, CLASS_NAME_SHOW_MENU } = this.constructor.ConfigConstants
     const EVENT_HIDE = `hide${this.constructor.EVENT_KEY}`
     const EVENT_HIDDEN = `hidden${this.constructor.EVENT_KEY}`
 
@@ -212,8 +213,8 @@ class Dropdown extends BaseComponent {
       this._popper.destroy()
     }
 
-    this._menu.classList.remove(CLASS_NAME_SHOW)
-    this._element.classList.remove(CLASS_NAME_SHOW)
+    this._menu.classList.remove(CLASS_NAME_SHOW_MENU)
+    this._element.classList.remove(CLASS_NAME_SHOW_TRIGGER)
     this._element.setAttribute('aria-expanded', 'false')
     Manipulator.removeDataAttribute(this._menu, 'popper')
     EventHandler.trigger(this._element, EVENT_HIDDEN, relatedTarget)
@@ -252,8 +253,8 @@ class Dropdown extends BaseComponent {
   }
 
   _isShown() {
-    const { CLASS_NAME_SHOW } = this.constructor.ConfigConstants
-    return this._menu.classList.contains(CLASS_NAME_SHOW)
+    const { CLASS_NAME_SHOW_MENU } = this.constructor.ConfigConstants
+    return this._menu.classList.contains(CLASS_NAME_SHOW_MENU)
   }
 
   _getPlacement() {
@@ -369,8 +370,8 @@ class Dropdown extends BaseComponent {
 
   static clearMenus(event) {
     const Class = this
-    const { RIGHT_MOUSE_BUTTON, TAB_KEY, SELECTOR_DATA_TOGGLE, CLASS_NAME_SHOW } = Class.ConfigConstants
-    const SELECTOR_DATA_TOGGLE_SHOWN = `${SELECTOR_DATA_TOGGLE}.${CLASS_NAME_SHOW}`
+    const { RIGHT_MOUSE_BUTTON, TAB_KEY, SELECTOR_DATA_TOGGLE, CLASS_NAME_SHOW_TRIGGER } = Class.ConfigConstants
+    const SELECTOR_DATA_TOGGLE_SHOWN = `${SELECTOR_DATA_TOGGLE}.${CLASS_NAME_SHOW_TRIGGER}`
 
     if (event.button === RIGHT_MOUSE_BUTTON || (event.type === 'keyup' && event.key !== TAB_KEY)) {
       return
