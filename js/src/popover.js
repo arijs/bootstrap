@@ -14,6 +14,7 @@ import { defineJQueryPlugin } from './util/index.js'
 
 const NAME = 'popover'
 
+const SELECTOR_ARROW = '.popover-arrow'
 const SELECTOR_TITLE = '.popover-header'
 const SELECTOR_CONTENT = '.popover-body'
 
@@ -56,6 +57,7 @@ class Popover extends Tooltip {
   static getConfigConstants(overrides = {}) {
     const defaults = {
       ...super.getConfigConstants(),
+      SELECTOR_ARROW,
       SELECTOR_TITLE,
       SELECTOR_CONTENT
     }

@@ -123,6 +123,14 @@ For components that use delegated handlers (e.g. `Dropdown.dataApiKeydownHandler
 
 For `tooltip`, `popover`, and `toast`, the key addition was exposing structural constants through `ConfigConstants` so `extendDefaultConfig(...)` can customize internal class names/selectors/event keys without mutating parent classes. These components do not have document-level Data API wiring to move into `static init()` / `static destroy()`.
 
+Arrow selector customization is now supported for Tooltip/Popover through `SELECTOR_ARROW`.
+
+- `Tooltip` defaults `SELECTOR_ARROW` to `.tooltip-arrow`
+- `Popover` overrides default `SELECTOR_ARROW` to `.popover-arrow`
+- `_getPopperConfig()` now uses `ConfigConstants.SELECTOR_ARROW` for the Popper arrow modifier target
+
+This allows consumers to use generated/scoped class names for arrow elements without relying on hardcoded Bootstrap arrow class names in templates.
+
 `popover` specifically merges parent constants first:
 
 ```js
@@ -257,6 +265,7 @@ import Tooltip from './bootstrap-fork/js/src/tooltip.js'
 const CustomTooltip = Tooltip.extendDefaultConfig({
   CLASS_NAME_SHOW: 'is-open',
   CLASS_NAME_FADE: 'is-fading',
+  SELECTOR_ARROW: '.app-tooltip-arrow',
   SELECTOR_TOOLTIP_INNER: '.app-tooltip-inner'
 })
 
@@ -274,6 +283,7 @@ import Popover from './bootstrap-fork/js/src/popover.js'
 
 const CustomPopover = Popover.extendDefaultConfig({
   CLASS_NAME_SHOW: 'is-open',
+  SELECTOR_ARROW: '.app-popover-arrow',
   SELECTOR_TITLE: '.app-popover-header',
   SELECTOR_CONTENT: '.app-popover-content'
 })
@@ -312,6 +322,7 @@ Common keys to override:
 
 - `CLASS_NAME_SHOW`
 - `CLASS_NAME_FADE`
+- `SELECTOR_ARROW`
 - `SELECTOR_TOOLTIP_INNER`
 - `SELECTOR_MODAL`
 - `EVENT_SHOW`
@@ -334,6 +345,7 @@ Common high-impact keys in practice:
 
 - `CLASS_NAME_SHOW`
 - `CLASS_NAME_FADE`
+- `SELECTOR_ARROW`
 - `SELECTOR_TITLE`
 - `SELECTOR_CONTENT`
 

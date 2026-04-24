@@ -80,6 +80,27 @@ All notable changes to this Bootstrap fork are documented here.
 - `static init()` / `static destroy()` — Wire and unwire the window `load` listener.
 - `static _isInitialized` — Guard flag.
 
+#### `js/src/tooltip.js`
+
+- `static getConfigConstants(overrides = {})` — Exposes Tooltip structural constants (classes/selectors/events/triggers/attachment map) through `ConfigConstants`.
+- `static get ConfigConstants` — Getter.
+- Added `SELECTOR_ARROW` structural constant (default: `.tooltip-arrow`).
+- `_getPopperConfig()` now uses `ConfigConstants.SELECTOR_ARROW` for Popper arrow modifier targeting (instead of a hardcoded name-derived selector).
+- Internal structural lookups in Tooltip behavior now consistently read from `this.constructor.ConfigConstants`.
+
+#### `js/src/popover.js`
+
+- `static getConfigConstants(overrides = {})` — Added/updated to merge `...super.getConfigConstants()` and expose Popover-specific structural selectors via `ConfigConstants`.
+- `static get ConfigConstants` — Getter.
+- Added Popover default `SELECTOR_ARROW` (default: `.popover-arrow`) while preserving Tooltip inheritance.
+- `SELECTOR_TITLE` and `SELECTOR_CONTENT` are now configurable structural selectors through `extendDefaultConfig(...)`.
+
+#### `js/src/toast.js`
+
+- `static getConfigConstants(overrides = {})` — Exposes Toast structural constants (classes/events/selectors) through `ConfigConstants`.
+- `static get ConfigConstants` — Getter.
+- Toast internals now read structural values from `this.constructor.ConfigConstants`, enabling structural override through `extendDefaultConfig(...)`.
+
 ---
 
 ### Changed

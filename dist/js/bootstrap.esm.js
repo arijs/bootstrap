@@ -715,7 +715,7 @@ class BaseComponent extends Config {
     const parentClass = this;
 
     // Helper to split flat overrides into Default, DefaultType, and ConfigConstants
-    const splitOverrides = (flat = {}) => {
+    const splitOverrides = flat => {
       const parentDefault = parentClass.Default || {};
       const parentDefaultType = parentClass.DefaultType || {};
       const parentConfigConstants = parentClass.ConfigConstants || {};
@@ -1018,6 +1018,7 @@ defineJQueryPlugin(Alert);
  */
 
 const NAME$e = 'button';
+const DOCUMENT_DATA_API_REGISTRY_KEY$1 = '__bootstrapButtonDataApiRegistry__';
 
 /**
  * Class definition
@@ -1061,9 +1062,17 @@ class Button extends BaseComponent {
     });
   }
   static init() {
-    if (this._isInitialized) {
+    if (typeof document === 'undefined') {
       return;
     }
+    const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY$1];
+    if (existingRegistration) {
+      this._clickHandler = existingRegistration.handler;
+      this._isInitialized = true;
+      defineJQueryPlugin(this);
+      return;
+    }
+    this._isInitialized = false;
     const {
       SELECTOR_DATA_TOGGLE,
       DATA_API_KEY
@@ -1076,19 +1085,29 @@ class Button extends BaseComponent {
       data.toggle();
     };
     EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+    document[DOCUMENT_DATA_API_REGISTRY_KEY$1] = {
+      eventName: EVENT_CLICK_DATA_API,
+      selector: SELECTOR_DATA_TOGGLE,
+      handler: this._clickHandler
+    };
     defineJQueryPlugin(this);
     this._isInitialized = true;
   }
   static destroy() {
-    if (!this._isInitialized) {
+    if (typeof document === 'undefined') {
       return;
     }
-    const {
-      SELECTOR_DATA_TOGGLE,
-      DATA_API_KEY
-    } = this.ConfigConstants;
-    const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
-    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+    const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY$1];
+    if (!existingRegistration && !this._isInitialized) {
+      return;
+    }
+    if (!existingRegistration) {
+      this._clickHandler = null;
+      this._isInitialized = false;
+      return;
+    }
+    EventHandler.off(document, existingRegistration.eventName, existingRegistration.selector, existingRegistration.handler);
+    delete document[DOCUMENT_DATA_API_REGISTRY_KEY$1];
     this._clickHandler = null;
     this._isInitialized = false;
   }
@@ -1972,6 +1991,7 @@ const DefaultType$9 = {
   popperConfig: '(null|object|function)',
   reference: '(string|element|object)'
 };
+const DOCUMENT_DATA_API_REGISTRY_KEY = '__bootstrapDropdownDataApiRegistry__';
 
 /**
  * Class definition
@@ -2288,8 +2308,9 @@ class Dropdown extends BaseComponent {
         continue;
       }
       const composedPath = event.composedPath();
+      const isToggleTarget = composedPath.includes(context._element) || context._element.contains(event.target);
       const isMenuTarget = composedPath.includes(context._menu);
-      if (composedPath.includes(context._element) || context._config.autoClose === 'inside' && !isMenuTarget || context._config.autoClose === 'outside' && isMenuTarget) {
+      if (isToggleTarget || context._config.autoClose === 'inside' && !isMenuTarget || context._config.autoClose === 'outside' && isMenuTarget) {
         continue;
       }
 
@@ -2347,9 +2368,19 @@ class Dropdown extends BaseComponent {
     }
   }
   static init() {
-    if (this._isInitialized) {
+    if (typeof document === 'undefined') {
       return;
     }
+    const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+    if (existingRegistration) {
+      this._clearMenusHandler = existingRegistration.clearMenusHandler;
+      this._keydownHandler = existingRegistration.keydownHandler;
+      this._toggleClickHandler = existingRegistration.toggleClickHandler;
+      this._isInitialized = true;
+      defineJQueryPlugin(this);
+      return;
+    }
+    this._isInitialized = false;
     const Class = this; // capture class for use in handler closures below
     const {
       SELECTOR_DATA_TOGGLE,
@@ -2366,7 +2397,7 @@ class Dropdown extends BaseComponent {
     this._clearMenusHandler = event => Class.clearMenus(event);
 
     // dataApiKeydownHandler is delegated: EventHandler calls fn.call(target, event)
-    // so `this` inside it is the matched DOM element — correct for DOM navigation.
+    // so `this` inside it is the matched DOM element - correct for DOM navigation.
     // We inject Class via the event so the handler can read the right ConfigConstants.
     this._keydownHandler = function (event) {
       event._bsDropdownClass = Class;
@@ -2384,26 +2415,40 @@ class Dropdown extends BaseComponent {
     EventHandler.on(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
     EventHandler.on(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
     EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+    document[DOCUMENT_DATA_API_REGISTRY_KEY] = {
+      keydownEventName: EVENT_KEYDOWN_DATA_API,
+      keyupEventName: EVENT_KEYUP_DATA_API,
+      clickEventName: EVENT_CLICK_DATA_API,
+      toggleSelector: SELECTOR_DATA_TOGGLE,
+      menuSelector: SELECTOR_MENU,
+      clearMenusHandler: this._clearMenusHandler,
+      keydownHandler: this._keydownHandler,
+      toggleClickHandler: this._toggleClickHandler
+    };
     defineJQueryPlugin(this);
     this._isInitialized = true;
   }
   static destroy() {
-    if (!this._isInitialized) {
+    if (typeof document === 'undefined') {
       return;
     }
-    const {
-      SELECTOR_DATA_TOGGLE,
-      SELECTOR_MENU,
-      DATA_API_KEY
-    } = this.ConfigConstants;
-    const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
-    const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
-    const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
-    EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
-    EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
-    EventHandler.off(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
-    EventHandler.off(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
-    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+    const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+    if (!existingRegistration && !this._isInitialized) {
+      return;
+    }
+    if (!existingRegistration) {
+      this._clearMenusHandler = null;
+      this._keydownHandler = null;
+      this._toggleClickHandler = null;
+      this._isInitialized = false;
+      return;
+    }
+    EventHandler.off(document, existingRegistration.keydownEventName, existingRegistration.toggleSelector, existingRegistration.keydownHandler);
+    EventHandler.off(document, existingRegistration.keydownEventName, existingRegistration.menuSelector, existingRegistration.keydownHandler);
+    EventHandler.off(document, existingRegistration.clickEventName, existingRegistration.clearMenusHandler);
+    EventHandler.off(document, existingRegistration.keyupEventName, existingRegistration.clearMenusHandler);
+    EventHandler.off(document, existingRegistration.clickEventName, existingRegistration.toggleSelector, existingRegistration.toggleClickHandler);
+    delete document[DOCUMENT_DATA_API_REGISTRY_KEY];
     this._clearMenusHandler = null;
     this._keydownHandler = null;
     this._toggleClickHandler = null;
@@ -3632,6 +3677,7 @@ const CLASS_NAME_FADE$2 = 'fade';
 const CLASS_NAME_MODAL = 'modal';
 const CLASS_NAME_SHOW$2 = 'show';
 const SELECTOR_TOOLTIP_INNER = '.tooltip-inner';
+const SELECTOR_ARROW$1 = '.tooltip-arrow';
 const SELECTOR_MODAL = `.${CLASS_NAME_MODAL}`;
 const EVENT_MODAL_HIDE = 'hide.bs.modal';
 const TRIGGER_HOVER = 'hover';
@@ -3732,6 +3778,39 @@ class Tooltip extends BaseComponent {
   static get NAME() {
     return NAME$4;
   }
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      CLASS_NAME_FADE: CLASS_NAME_FADE$2,
+      CLASS_NAME_MODAL,
+      CLASS_NAME_SHOW: CLASS_NAME_SHOW$2,
+      SELECTOR_TOOLTIP_INNER,
+      SELECTOR_ARROW: SELECTOR_ARROW$1,
+      SELECTOR_MODAL,
+      EVENT_MODAL_HIDE,
+      TRIGGER_HOVER,
+      TRIGGER_FOCUS,
+      TRIGGER_CLICK,
+      TRIGGER_MANUAL,
+      EVENT_HIDE: EVENT_HIDE$2,
+      EVENT_HIDDEN: EVENT_HIDDEN$2,
+      EVENT_SHOW: EVENT_SHOW$2,
+      EVENT_SHOWN: EVENT_SHOWN$2,
+      EVENT_INSERTED,
+      EVENT_CLICK: EVENT_CLICK$1,
+      EVENT_FOCUSIN: EVENT_FOCUSIN$1,
+      EVENT_FOCUSOUT: EVENT_FOCUSOUT$1,
+      EVENT_MOUSEENTER,
+      EVENT_MOUSELEAVE,
+      ATTACHMENT_MAP: AttachmentMap
+    };
+    return {
+      ...defaults,
+      ...overrides
+    };
+  }
+  static get ConfigConstants() {
+    return this.getConfigConstants();
+  }
 
   // Public
   enable() {
@@ -3755,6 +3834,10 @@ class Tooltip extends BaseComponent {
   }
   dispose() {
     clearTimeout(this._timeout);
+    const {
+      SELECTOR_MODAL,
+      EVENT_MODAL_HIDE
+    } = this.constructor.ConfigConstants;
     EventHandler.off(this._element.closest(SELECTOR_MODAL), EVENT_MODAL_HIDE, this._hideModalHandler);
     if (this._element.getAttribute('data-bs-original-title')) {
       this._element.setAttribute('title', this._element.getAttribute('data-bs-original-title'));
@@ -3769,7 +3852,13 @@ class Tooltip extends BaseComponent {
     if (!(this._isWithContent() && this._isEnabled)) {
       return;
     }
-    const showEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOW$2));
+    const {
+      EVENT_SHOW,
+      EVENT_INSERTED,
+      CLASS_NAME_SHOW,
+      EVENT_SHOWN
+    } = this.constructor.ConfigConstants;
+    const showEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOW));
     const shadowRoot = findShadowRoot(this._element);
     const isInTheDom = (shadowRoot || this._element.ownerDocument.documentElement).contains(this._element);
     if (showEvent.defaultPrevented || !isInTheDom) {
@@ -3788,7 +3877,7 @@ class Tooltip extends BaseComponent {
       EventHandler.trigger(this._element, this.constructor.eventName(EVENT_INSERTED));
     }
     this._popper = this._createPopper(tip);
-    tip.classList.add(CLASS_NAME_SHOW$2);
+    tip.classList.add(CLASS_NAME_SHOW);
 
     // If this is a touch-enabled device we add extra
     // empty mouseover listeners to the body's immediate children;
@@ -3800,7 +3889,7 @@ class Tooltip extends BaseComponent {
       }
     }
     const complete = () => {
-      EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOWN$2));
+      EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOWN));
       if (this._isHovered === false) {
         this._leave();
       }
@@ -3812,12 +3901,20 @@ class Tooltip extends BaseComponent {
     if (!this._isShown()) {
       return;
     }
-    const hideEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDE$2));
+    const {
+      EVENT_HIDE,
+      CLASS_NAME_SHOW,
+      TRIGGER_CLICK,
+      TRIGGER_FOCUS,
+      TRIGGER_HOVER,
+      EVENT_HIDDEN
+    } = this.constructor.ConfigConstants;
+    const hideEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDE));
     if (hideEvent.defaultPrevented) {
       return;
     }
     const tip = this._getTipElement();
-    tip.classList.remove(CLASS_NAME_SHOW$2);
+    tip.classList.remove(CLASS_NAME_SHOW);
 
     // If this is a touch-enabled device we remove the extra
     // empty mouseover listeners we added for iOS support
@@ -3839,7 +3936,7 @@ class Tooltip extends BaseComponent {
         this._disposePopper();
       }
       this._element.removeAttribute('aria-describedby');
-      EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDDEN$2));
+      EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDDEN));
     };
     this._queueCallback(complete, this.tip, this._isAnimated());
   }
@@ -3860,19 +3957,23 @@ class Tooltip extends BaseComponent {
     return this.tip;
   }
   _createTipElement(content) {
+    const {
+      CLASS_NAME_FADE,
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
     const tip = this._getTemplateFactory(content).toHtml();
 
     // TODO: remove this check in v6
     if (!tip) {
       return null;
     }
-    tip.classList.remove(CLASS_NAME_FADE$2, CLASS_NAME_SHOW$2);
+    tip.classList.remove(CLASS_NAME_FADE, CLASS_NAME_SHOW);
     // TODO: v6 the following can be achieved with CSS only
     tip.classList.add(`bs-${this.constructor.NAME}-auto`);
     const tipId = getUID(this.constructor.NAME).toString();
     tip.setAttribute('id', tipId);
     if (this._isAnimated()) {
-      tip.classList.add(CLASS_NAME_FADE$2);
+      tip.classList.add(CLASS_NAME_FADE);
     }
     return tip;
   }
@@ -3898,6 +3999,9 @@ class Tooltip extends BaseComponent {
     return this._templateFactory;
   }
   _getContentForTemplate() {
+    const {
+      SELECTOR_TOOLTIP_INNER
+    } = this.constructor.ConfigConstants;
     return {
       [SELECTOR_TOOLTIP_INNER]: this._getTitle()
     };
@@ -3911,14 +4015,23 @@ class Tooltip extends BaseComponent {
     return this.constructor.getOrCreateInstance(event.delegateTarget, this._getDelegateConfig());
   }
   _isAnimated() {
-    return this._config.animation || this.tip && this.tip.classList.contains(CLASS_NAME_FADE$2);
+    const {
+      CLASS_NAME_FADE
+    } = this.constructor.ConfigConstants;
+    return this._config.animation || this.tip && this.tip.classList.contains(CLASS_NAME_FADE);
   }
   _isShown() {
-    return this.tip && this.tip.classList.contains(CLASS_NAME_SHOW$2);
+    const {
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
+    return this.tip && this.tip.classList.contains(CLASS_NAME_SHOW);
   }
   _createPopper(tip) {
+    const {
+      ATTACHMENT_MAP
+    } = this.constructor.ConfigConstants;
     const placement = execute(this._config.placement, [this, tip, this._element]);
-    const attachment = AttachmentMap[placement.toUpperCase()];
+    const attachment = ATTACHMENT_MAP[placement.toUpperCase()];
     return Popper.createPopper(this._element, tip, this._getPopperConfig(attachment));
   }
   _getOffset() {
@@ -3937,6 +4050,9 @@ class Tooltip extends BaseComponent {
     return execute(arg, [this._element, this._element]);
   }
   _getPopperConfig(attachment) {
+    const {
+      SELECTOR_ARROW
+    } = this.constructor.ConfigConstants;
     const defaultBsPopperConfig = {
       placement: attachment,
       modifiers: [{
@@ -3957,7 +4073,7 @@ class Tooltip extends BaseComponent {
       }, {
         name: 'arrow',
         options: {
-          element: `.${this.constructor.NAME}-arrow`
+          element: SELECTOR_ARROW
         }
       }, {
         name: 'preSetPlacement',
@@ -3976,17 +4092,30 @@ class Tooltip extends BaseComponent {
     };
   }
   _setListeners() {
+    const {
+      EVENT_CLICK,
+      TRIGGER_CLICK,
+      TRIGGER_MANUAL,
+      TRIGGER_HOVER,
+      EVENT_MOUSEENTER,
+      EVENT_FOCUSIN,
+      EVENT_MOUSELEAVE,
+      EVENT_FOCUSOUT,
+      TRIGGER_FOCUS,
+      SELECTOR_MODAL,
+      EVENT_MODAL_HIDE
+    } = this.constructor.ConfigConstants;
     const triggers = this._config.trigger.split(' ');
     for (const trigger of triggers) {
-      if (trigger === 'click') {
-        EventHandler.on(this._element, this.constructor.eventName(EVENT_CLICK$1), this._config.selector, event => {
+      if (trigger === TRIGGER_CLICK) {
+        EventHandler.on(this._element, this.constructor.eventName(EVENT_CLICK), this._config.selector, event => {
           const context = this._initializeOnDelegatedTarget(event);
           context._activeTrigger[TRIGGER_CLICK] = !(context._isShown() && context._activeTrigger[TRIGGER_CLICK]);
           context.toggle();
         });
       } else if (trigger !== TRIGGER_MANUAL) {
-        const eventIn = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSEENTER) : this.constructor.eventName(EVENT_FOCUSIN$1);
-        const eventOut = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSELEAVE) : this.constructor.eventName(EVENT_FOCUSOUT$1);
+        const eventIn = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSEENTER) : this.constructor.eventName(EVENT_FOCUSIN);
+        const eventOut = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSELEAVE) : this.constructor.eventName(EVENT_FOCUSOUT);
         EventHandler.on(this._element, eventIn, this._config.selector, event => {
           const context = this._initializeOnDelegatedTarget(event);
           context._activeTrigger[event.type === 'focusin' ? TRIGGER_FOCUS : TRIGGER_HOVER] = true;
@@ -4080,6 +4209,9 @@ class Tooltip extends BaseComponent {
     return config;
   }
   _getDelegateConfig() {
+    const {
+      TRIGGER_MANUAL
+    } = this.constructor.ConfigConstants;
     const config = {};
     for (const [key, value] of Object.entries(this._config)) {
       if (this.constructor.Default[key] !== value) {
@@ -4087,7 +4219,7 @@ class Tooltip extends BaseComponent {
       }
     }
     config.selector = false;
-    config.trigger = 'manual';
+    config.trigger = TRIGGER_MANUAL;
 
     // In the future can be replaced with:
     // const keysWithDifferentValues = Object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])
@@ -4139,6 +4271,7 @@ defineJQueryPlugin(Tooltip);
  */
 
 const NAME$3 = 'popover';
+const SELECTOR_ARROW = '.popover-arrow';
 const SELECTOR_TITLE = '.popover-header';
 const SELECTOR_CONTENT = '.popover-body';
 const Default$2 = {
@@ -4169,6 +4302,21 @@ class Popover extends Tooltip {
   static get NAME() {
     return NAME$3;
   }
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      ...super.getConfigConstants(),
+      SELECTOR_ARROW,
+      SELECTOR_TITLE,
+      SELECTOR_CONTENT
+    };
+    return {
+      ...defaults,
+      ...overrides
+    };
+  }
+  static get ConfigConstants() {
+    return this.getConfigConstants();
+  }
 
   // Overrides
   _isWithContent() {
@@ -4177,6 +4325,10 @@ class Popover extends Tooltip {
 
   // Private
   _getContentForTemplate() {
+    const {
+      SELECTOR_TITLE,
+      SELECTOR_CONTENT
+    } = this.constructor.ConfigConstants;
     return {
       [SELECTOR_TITLE]: this._getTitle(),
       [SELECTOR_CONTENT]: this._getContent()
@@ -4901,9 +5053,40 @@ class Toast extends BaseComponent {
   static get NAME() {
     return NAME;
   }
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      EVENT_MOUSEOVER,
+      EVENT_MOUSEOUT,
+      EVENT_FOCUSIN,
+      EVENT_FOCUSOUT,
+      EVENT_HIDE,
+      EVENT_HIDDEN,
+      EVENT_SHOW,
+      EVENT_SHOWN,
+      CLASS_NAME_FADE,
+      CLASS_NAME_HIDE,
+      CLASS_NAME_SHOW,
+      CLASS_NAME_SHOWING
+    };
+    return {
+      ...defaults,
+      ...overrides
+    };
+  }
+  static get ConfigConstants() {
+    return this.getConfigConstants();
+  }
 
   // Public
   show() {
+    const {
+      EVENT_SHOW,
+      CLASS_NAME_FADE,
+      CLASS_NAME_SHOWING,
+      EVENT_SHOWN,
+      CLASS_NAME_HIDE,
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
     const showEvent = EventHandler.trigger(this._element, EVENT_SHOW);
     if (showEvent.defaultPrevented) {
       return;
@@ -4923,6 +5106,13 @@ class Toast extends BaseComponent {
     this._queueCallback(complete, this._element, this._config.animation);
   }
   hide() {
+    const {
+      EVENT_HIDE,
+      CLASS_NAME_HIDE,
+      CLASS_NAME_SHOWING,
+      CLASS_NAME_SHOW,
+      EVENT_HIDDEN
+    } = this.constructor.ConfigConstants;
     if (!this.isShown()) {
       return;
     }
@@ -4939,6 +5129,9 @@ class Toast extends BaseComponent {
     this._queueCallback(complete, this._element, this._config.animation);
   }
   dispose() {
+    const {
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
     this._clearTimeout();
     if (this.isShown()) {
       this._element.classList.remove(CLASS_NAME_SHOW);
@@ -4946,6 +5139,9 @@ class Toast extends BaseComponent {
     super.dispose();
   }
   isShown() {
+    const {
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
     return this._element.classList.contains(CLASS_NAME_SHOW);
   }
 
@@ -4962,15 +5158,25 @@ class Toast extends BaseComponent {
     }, this._config.delay);
   }
   _onInteraction(event, isInteracting) {
+    const {
+      EVENT_MOUSEOVER,
+      EVENT_MOUSEOUT,
+      EVENT_FOCUSIN,
+      EVENT_FOCUSOUT
+    } = this.constructor.ConfigConstants;
+    const typeMouseOver = EVENT_MOUSEOVER.split('.')[0];
+    const typeMouseOut = EVENT_MOUSEOUT.split('.')[0];
+    const typeFocusIn = EVENT_FOCUSIN.split('.')[0];
+    const typeFocusOut = EVENT_FOCUSOUT.split('.')[0];
     switch (event.type) {
-      case 'mouseover':
-      case 'mouseout':
+      case typeMouseOver:
+      case typeMouseOut:
         {
           this._hasMouseInteraction = isInteracting;
           break;
         }
-      case 'focusin':
-      case 'focusout':
+      case typeFocusIn:
+      case typeFocusOut:
         {
           this._hasKeyboardInteraction = isInteracting;
           break;
@@ -4987,6 +5193,12 @@ class Toast extends BaseComponent {
     this._maybeScheduleHide();
   }
   _setListeners() {
+    const {
+      EVENT_MOUSEOVER,
+      EVENT_MOUSEOUT,
+      EVENT_FOCUSIN,
+      EVENT_FOCUSOUT
+    } = this.constructor.ConfigConstants;
     EventHandler.on(this._element, EVENT_MOUSEOVER, event => this._onInteraction(event, true));
     EventHandler.on(this._element, EVENT_MOUSEOUT, event => this._onInteraction(event, false));
     EventHandler.on(this._element, EVENT_FOCUSIN, event => this._onInteraction(event, true));

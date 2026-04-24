@@ -27,6 +27,7 @@ const CLASS_NAME_MODAL = 'modal'
 const CLASS_NAME_SHOW = 'show'
 
 const SELECTOR_TOOLTIP_INNER = '.tooltip-inner'
+const SELECTOR_ARROW = '.tooltip-arrow'
 const SELECTOR_MODAL = `.${CLASS_NAME_MODAL}`
 
 const EVENT_MODAL_HIDE = 'hide.bs.modal'
@@ -148,6 +149,7 @@ class Tooltip extends BaseComponent {
       CLASS_NAME_MODAL,
       CLASS_NAME_SHOW,
       SELECTOR_TOOLTIP_INNER,
+      SELECTOR_ARROW,
       SELECTOR_MODAL,
       EVENT_MODAL_HIDE,
       TRIGGER_HOVER,
@@ -440,6 +442,8 @@ class Tooltip extends BaseComponent {
   }
 
   _getPopperConfig(attachment) {
+    const { SELECTOR_ARROW } = this.constructor.ConfigConstants
+
     const defaultBsPopperConfig = {
       placement: attachment,
       modifiers: [
@@ -464,7 +468,7 @@ class Tooltip extends BaseComponent {
         {
           name: 'arrow',
           options: {
-            element: `.${this.constructor.NAME}-arrow`
+            element: SELECTOR_ARROW
           }
         },
         {
