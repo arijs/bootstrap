@@ -53,11 +53,27 @@
     static get ConfigConstants() {
       return this.getConfigConstants();
     }
+
+    // Static
+
     static init() {
-      // Alert has no module-level listeners; all are handled by enableDismissTrigger
+      if (this._isInitialized) {
+        return;
+      }
+
+      /**
+       * Data API implementation
+       */
+      this._disposeDismissTrigger = componentFunctions_js.enableDismissTrigger(this, 'close');
+      this._isInitialized = true;
     }
     static destroy() {
-      // Alert has no module-level listeners; all are handled by enableDismissTrigger
+      if (!this._isInitialized) {
+        return;
+      }
+      this._disposeDismissTrigger();
+      this._disposeDismissTrigger = null;
+      this._isInitialized = false;
     }
 
     // Public
@@ -98,17 +114,14 @@
       });
     }
   }
-
-  /**
-   * Data API implementation
-   */
-
-  componentFunctions_js.enableDismissTrigger(Alert, 'close');
+  Alert._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Alert.init();
+  }
 
   /**
    * jQuery
    */
-
   index_js.defineJQueryPlugin(Alert);
 
   return Alert;

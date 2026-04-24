@@ -897,7 +897,7 @@
     }
     const clickEvent = `click.dismiss${component.EVENT_KEY}`;
     const name = component.NAME;
-    EventHandler.on(document, clickEvent, `[data-bs-dismiss="${name}"]`, function (event) {
+    const handler = function (event) {
       if (['A', 'AREA'].includes(this.tagName)) {
         event.preventDefault();
       }
@@ -909,7 +909,12 @@
 
       // Method argument is left, for Alert and only, as it doesn't implement the 'hide' method
       instance[method]();
-    });
+    };
+    EventHandler.on(document, clickEvent, `[data-bs-dismiss="${name}"]`, handler);
+    const dispose = () => {
+      EventHandler.off(document, clickEvent, `[data-bs-dismiss="${name}"]`, handler);
+    };
+    return dispose;
   };
 
   /**
@@ -956,11 +961,27 @@
     static get ConfigConstants() {
       return this.getConfigConstants();
     }
+
+    // Static
+
     static init() {
-      // Alert has no module-level listeners; all are handled by enableDismissTrigger
+      if (this._isInitialized) {
+        return;
+      }
+
+      /**
+       * Data API implementation
+       */
+      this._disposeDismissTrigger = enableDismissTrigger(this, 'close');
+      this._isInitialized = true;
     }
     static destroy() {
-      // Alert has no module-level listeners; all are handled by enableDismissTrigger
+      if (!this._isInitialized) {
+        return;
+      }
+      this._disposeDismissTrigger();
+      this._disposeDismissTrigger = null;
+      this._isInitialized = false;
     }
 
     // Public
@@ -1001,17 +1022,14 @@
       });
     }
   }
-
-  /**
-   * Data API implementation
-   */
-
-  enableDismissTrigger(Alert, 'close');
+  Alert._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Alert.init();
+  }
 
   /**
    * jQuery
    */
-
   defineJQueryPlugin(Alert);
 
   /**

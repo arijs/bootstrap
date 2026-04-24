@@ -16,8 +16,7 @@ const enableDismissTrigger = (component, method = 'hide') => {
 
   const clickEvent = `click.dismiss${component.EVENT_KEY}`
   const name = component.NAME
-
-  EventHandler.on(document, clickEvent, `[data-bs-dismiss="${name}"]`, function (event) {
+  const handler = function (event) {
     if (['A', 'AREA'].includes(this.tagName)) {
       event.preventDefault()
     }
@@ -30,8 +29,15 @@ const enableDismissTrigger = (component, method = 'hide') => {
     const instance = component.getOrCreateInstance(target)
 
     // Method argument is left, for Alert and only, as it doesn't implement the 'hide' method
-    instance[method]()
-  })
+    const result = instance[method]()
+  }
+
+  EventHandler.on(document, clickEvent, `[data-bs-dismiss="${name}"]`, handler)
+  const dispose = () => {
+    EventHandler.off(document, clickEvent, `[data-bs-dismiss="${name}"]`, handler)
+  }
+
+  return dispose
 }
 
 export {

@@ -47,12 +47,31 @@ class Alert extends BaseComponent {
     return this.getConfigConstants()
   }
 
+  // Static
+  static _isInitialized = false
+
   static init() {
-    // Alert has no module-level listeners; all are handled by enableDismissTrigger
+    if (this._isInitialized) {
+      return
+    }
+
+    /**
+     * Data API implementation
+     */
+    this._disposeDismissTrigger = enableDismissTrigger(this, 'close')
+
+    this._isInitialized = true
   }
 
   static destroy() {
-    // Alert has no module-level listeners; all are handled by enableDismissTrigger
+    if (!this._isInitialized) {
+      return
+    }
+
+    this._disposeDismissTrigger()
+    this._disposeDismissTrigger = null
+
+    this._isInitialized = false
   }
 
   // Public
@@ -95,16 +114,13 @@ class Alert extends BaseComponent {
   }
 }
 
-/**
- * Data API implementation
- */
-
-enableDismissTrigger(Alert, 'close')
+if (typeof document !== 'undefined') {
+  Alert.init()
+}
 
 /**
  * jQuery
  */
-
 defineJQueryPlugin(Alert)
 
 export default Alert

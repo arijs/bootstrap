@@ -16,6 +16,16 @@ class DummyClass2 extends BaseComponent {
   }
 }
 
+class DummyClassDispose extends BaseComponent {
+  static get NAME() {
+    return 'test-dispose'
+  }
+
+  hide() {
+    return true
+  }
+}
+
 describe('Plugin functions', () => {
   let fixtureEl
 
@@ -101,6 +111,24 @@ describe('Plugin functions', () => {
       btnClose.dispatchEvent(event)
 
       expect(spy).toHaveBeenCalled()
+    })
+
+    it('should remove the dismiss trigger listener when dispose is called', () => {
+      fixtureEl.innerHTML = [
+        '<div id="foo" class="test-dispose">',
+        '  <button type="button" data-bs-dismiss="test-dispose"></button>',
+        '</div>'
+      ].join('')
+
+      const spyGet = spyOn(DummyClassDispose, 'getOrCreateInstance').and.callThrough()
+      const btnClose = fixtureEl.querySelector('[data-bs-dismiss="test-dispose"]')
+      const event = createEvent('click')
+      const dispose = enableDismissTrigger(DummyClassDispose)
+
+      dispose()
+      btnClose.dispatchEvent(event)
+
+      expect(spyGet).not.toHaveBeenCalled()
     })
   })
 })

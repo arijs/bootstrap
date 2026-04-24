@@ -62,6 +62,27 @@ describe('Alert', () => {
     })
   })
 
+  describe('static lifecycle', () => {
+    afterEach(() => {
+      Alert.init()
+    })
+
+    it('should be safe to initialize and destroy repeatedly', () => {
+      Alert.init()
+      const disposeBeforeSecondInit = Alert._disposeDismissTrigger
+
+      Alert.init()
+
+      expect(Alert._disposeDismissTrigger).toEqual(disposeBeforeSecondInit)
+
+      Alert.destroy()
+      expect(Alert._isInitialized).toBeFalse()
+
+      Alert.destroy()
+      expect(Alert._isInitialized).toBeFalse()
+    })
+  })
+
   describe('close', () => {
     it('should close an alert', () => {
       return new Promise(resolve => {
