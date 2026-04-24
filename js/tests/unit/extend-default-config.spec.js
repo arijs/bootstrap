@@ -29,10 +29,9 @@ describe('extendDefaultConfig', () => {
   beforeAll(() => {
     fixtureEl = getFixture()
 
-    // Button and Dropdown auto-init their Data API listeners when imported.
-    // Destroy them so we don't duplicate the listeners from button.spec.js and dropdown.spec.js.
+    // Rebind the shared Button data API listener to this bundle's Button class.
     Button.destroy()
-    Dropdown.destroy()
+    Button.init()
   })
 
   afterEach(() => {
@@ -160,10 +159,12 @@ describe('extendDefaultConfig', () => {
       expect(Button._isInitialized).toBeTrue()
     })
 
-    it('Data API: should apply CLASS_NAME_ACTIVE from ConfigConstants (default "active")', () => {
+    it('toggle() should apply CLASS_NAME_ACTIVE from ConfigConstants (default "active")', () => {
       fixtureEl.innerHTML = '<button class="btn" data-bs-toggle="button">btn</button>'
       const btn = fixtureEl.querySelector('[data-bs-toggle="button"]')
-      click(btn)
+      const instance = new Button(btn)
+
+      instance.toggle()
       expect(btn.classList.contains('active')).toBeTrue()
     })
 

@@ -56,6 +56,31 @@ describe('Tooltip', () => {
     })
   })
 
+  describe('ConfigConstants override', () => {
+    it('should expose ConfigConstants defaults', () => {
+      expect(Tooltip.ConfigConstants.CLASS_NAME_SHOW).toBe('show')
+      expect(Tooltip.ConfigConstants.SELECTOR_TOOLTIP_INNER).toBe('.tooltip-inner')
+      expect(Tooltip.ConfigConstants.TRIGGER_MANUAL).toBe('manual')
+    })
+
+    it('extendDefaultConfig should allow overriding structural constants', () => {
+      const CustomTooltip = Tooltip.extendDefaultConfig({
+        CLASS_NAME_SHOW: 'is-open',
+        SELECTOR_TOOLTIP_INNER: '.app-tooltip-inner',
+        TRIGGER_MANUAL: 'custom-manual'
+      })
+
+      expect(CustomTooltip.ConfigConstants.CLASS_NAME_SHOW).toBe('is-open')
+      expect(CustomTooltip.ConfigConstants.SELECTOR_TOOLTIP_INNER).toBe('.app-tooltip-inner')
+      expect(CustomTooltip.ConfigConstants.TRIGGER_MANUAL).toBe('custom-manual')
+    })
+
+    it('extendDefaultConfig should not mutate parent ConfigConstants', () => {
+      Tooltip.extendDefaultConfig({ CLASS_NAME_SHOW: 'mutated' })
+      expect(Tooltip.ConfigConstants.CLASS_NAME_SHOW).toBe('show')
+    })
+  })
+
   describe('constructor', () => {
     it('should take care of element either passed as a CSS selector or DOM element', () => {
       fixtureEl.innerHTML = '<a href="#" id="tooltipEl" rel="tooltip" title="Nice and short title"></a>'

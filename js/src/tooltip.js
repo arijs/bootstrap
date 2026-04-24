@@ -142,6 +142,38 @@ class Tooltip extends BaseComponent {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      CLASS_NAME_FADE,
+      CLASS_NAME_MODAL,
+      CLASS_NAME_SHOW,
+      SELECTOR_TOOLTIP_INNER,
+      SELECTOR_MODAL,
+      EVENT_MODAL_HIDE,
+      TRIGGER_HOVER,
+      TRIGGER_FOCUS,
+      TRIGGER_CLICK,
+      TRIGGER_MANUAL,
+      EVENT_HIDE,
+      EVENT_HIDDEN,
+      EVENT_SHOW,
+      EVENT_SHOWN,
+      EVENT_INSERTED,
+      EVENT_CLICK,
+      EVENT_FOCUSIN,
+      EVENT_FOCUSOUT,
+      EVENT_MOUSEENTER,
+      EVENT_MOUSELEAVE,
+      ATTACHMENT_MAP: AttachmentMap
+    }
+
+    return { ...defaults, ...overrides }
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
   // Public
   enable() {
     this._isEnabled = true
@@ -171,6 +203,8 @@ class Tooltip extends BaseComponent {
   dispose() {
     clearTimeout(this._timeout)
 
+    const { SELECTOR_MODAL, EVENT_MODAL_HIDE } = this.constructor.ConfigConstants
+
     EventHandler.off(this._element.closest(SELECTOR_MODAL), EVENT_MODAL_HIDE, this._hideModalHandler)
 
     if (this._element.getAttribute('data-bs-original-title')) {
@@ -189,6 +223,8 @@ class Tooltip extends BaseComponent {
     if (!(this._isWithContent() && this._isEnabled)) {
       return
     }
+
+    const { EVENT_SHOW, EVENT_INSERTED, CLASS_NAME_SHOW, EVENT_SHOWN } = this.constructor.ConfigConstants
 
     const showEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOW))
     const shadowRoot = findShadowRoot(this._element)
@@ -243,6 +279,8 @@ class Tooltip extends BaseComponent {
     if (!this._isShown()) {
       return
     }
+
+    const { EVENT_HIDE, CLASS_NAME_SHOW, TRIGGER_CLICK, TRIGGER_FOCUS, TRIGGER_HOVER, EVENT_HIDDEN } = this.constructor.ConfigConstants
 
     const hideEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDE))
     if (hideEvent.defaultPrevented) {
@@ -301,6 +339,8 @@ class Tooltip extends BaseComponent {
   }
 
   _createTipElement(content) {
+    const { CLASS_NAME_FADE, CLASS_NAME_SHOW } = this.constructor.ConfigConstants
+
     const tip = this._getTemplateFactory(content).toHtml()
 
     // TODO: remove this check in v6
@@ -348,6 +388,8 @@ class Tooltip extends BaseComponent {
   }
 
   _getContentForTemplate() {
+    const { SELECTOR_TOOLTIP_INNER } = this.constructor.ConfigConstants
+
     return {
       [SELECTOR_TOOLTIP_INNER]: this._getTitle()
     }
@@ -363,16 +405,19 @@ class Tooltip extends BaseComponent {
   }
 
   _isAnimated() {
+    const { CLASS_NAME_FADE } = this.constructor.ConfigConstants
     return this._config.animation || (this.tip && this.tip.classList.contains(CLASS_NAME_FADE))
   }
 
   _isShown() {
+    const { CLASS_NAME_SHOW } = this.constructor.ConfigConstants
     return this.tip && this.tip.classList.contains(CLASS_NAME_SHOW)
   }
 
   _createPopper(tip) {
+    const { ATTACHMENT_MAP } = this.constructor.ConfigConstants
     const placement = execute(this._config.placement, [this, tip, this._element])
-    const attachment = AttachmentMap[placement.toUpperCase()]
+    const attachment = ATTACHMENT_MAP[placement.toUpperCase()]
     return Popper.createPopper(this._element, tip, this._getPopperConfig(attachment))
   }
 
@@ -442,10 +487,24 @@ class Tooltip extends BaseComponent {
   }
 
   _setListeners() {
+    const {
+      EVENT_CLICK,
+      TRIGGER_CLICK,
+      TRIGGER_MANUAL,
+      TRIGGER_HOVER,
+      EVENT_MOUSEENTER,
+      EVENT_FOCUSIN,
+      EVENT_MOUSELEAVE,
+      EVENT_FOCUSOUT,
+      TRIGGER_FOCUS,
+      SELECTOR_MODAL,
+      EVENT_MODAL_HIDE
+    } = this.constructor.ConfigConstants
+
     const triggers = this._config.trigger.split(' ')
 
     for (const trigger of triggers) {
-      if (trigger === 'click') {
+      if (trigger === TRIGGER_CLICK) {
         EventHandler.on(this._element, this.constructor.eventName(EVENT_CLICK), this._config.selector, event => {
           const context = this._initializeOnDelegatedTarget(event)
           context._activeTrigger[TRIGGER_CLICK] = !(context._isShown() && context._activeTrigger[TRIGGER_CLICK])
@@ -577,6 +636,8 @@ class Tooltip extends BaseComponent {
   }
 
   _getDelegateConfig() {
+    const { TRIGGER_MANUAL } = this.constructor.ConfigConstants
+
     const config = {}
 
     for (const [key, value] of Object.entries(this._config)) {
@@ -586,7 +647,7 @@ class Tooltip extends BaseComponent {
     }
 
     config.selector = false
-    config.trigger = 'manual'
+    config.trigger = TRIGGER_MANUAL
 
     // In the future can be replaced with:
     // const keysWithDifferentValues = Object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])

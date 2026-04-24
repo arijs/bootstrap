@@ -116,6 +116,31 @@ describe('Toast', () => {
     })
   })
 
+  describe('ConfigConstants override', () => {
+    it('should expose ConfigConstants defaults', () => {
+      expect(Toast.ConfigConstants.CLASS_NAME_SHOW).toBe('show')
+      expect(Toast.ConfigConstants.CLASS_NAME_FADE).toBe('fade')
+      expect(Toast.ConfigConstants.EVENT_SHOW).toBe('show.bs.toast')
+    })
+
+    it('extendDefaultConfig should allow overriding structural constants', () => {
+      const CustomToast = Toast.extendDefaultConfig({
+        CLASS_NAME_SHOW: 'is-open',
+        CLASS_NAME_FADE: 'is-fading',
+        EVENT_SHOW: 'show.bs.custom-toast'
+      })
+
+      expect(CustomToast.ConfigConstants.CLASS_NAME_SHOW).toBe('is-open')
+      expect(CustomToast.ConfigConstants.CLASS_NAME_FADE).toBe('is-fading')
+      expect(CustomToast.ConfigConstants.EVENT_SHOW).toBe('show.bs.custom-toast')
+    })
+
+    it('extendDefaultConfig should not mutate parent ConfigConstants', () => {
+      Toast.extendDefaultConfig({ CLASS_NAME_SHOW: 'mutated' })
+      expect(Toast.ConfigConstants.CLASS_NAME_SHOW).toBe('show')
+    })
+  })
+
   describe('show', () => {
     it('should auto hide', () => {
       return new Promise(resolve => {

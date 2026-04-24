@@ -14,6 +14,7 @@ import { defineJQueryPlugin } from './util/index.js'
  */
 
 const NAME = 'button'
+const DOCUMENT_DATA_API_REGISTRY_KEY = '__bootstrapButtonDataApiRegistry__'
 
 /**
  * Class definition
@@ -56,9 +57,19 @@ class Button extends BaseComponent {
   }
 
   static init() {
-    if (this._isInitialized) {
+    if (typeof document === 'undefined') {
       return
     }
+
+    const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY]
+    if (existingRegistration) {
+      this._clickHandler = existingRegistration.handler
+      this._isInitialized = true
+      defineJQueryPlugin(this)
+      return
+    }
+
+    this._isInitialized = false
 
     const { SELECTOR_DATA_TOGGLE, DATA_API_KEY } = this.ConfigConstants
     const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`
@@ -71,20 +82,35 @@ class Button extends BaseComponent {
     }
 
     EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+    document[DOCUMENT_DATA_API_REGISTRY_KEY] = {
+      eventName: EVENT_CLICK_DATA_API,
+      selector: SELECTOR_DATA_TOGGLE,
+      handler: this._clickHandler
+    }
     defineJQueryPlugin(this)
 
     this._isInitialized = true
   }
 
   static destroy() {
-    if (!this._isInitialized) {
+    if (typeof document === 'undefined') {
       return
     }
 
-    const { SELECTOR_DATA_TOGGLE, DATA_API_KEY } = this.ConfigConstants
-    const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`
+    const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY]
+    if (!existingRegistration && !this._isInitialized) {
+      return
+    }
 
-    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+    if (!existingRegistration) {
+      this._clickHandler = null
+      this._isInitialized = false
+      return
+    }
+
+    EventHandler.off(document, existingRegistration.eventName, existingRegistration.selector, existingRegistration.handler)
+    delete document[DOCUMENT_DATA_API_REGISTRY_KEY]
+
     this._clickHandler = null
     this._isInitialized = false
   }

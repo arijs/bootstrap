@@ -95,7 +95,7 @@ class BaseComponent extends Config {
     const parentClass = this
 
     // Helper to split flat overrides into Default, DefaultType, and ConfigConstants
-    const splitOverrides = (flat = {}) => {
+    const splitOverrides = flat => {
       const parentDefault = parentClass.Default || {}
       const parentDefaultType = parentClass.DefaultType || {}
       const parentConfigConstants = parentClass.ConfigConstants || {}

@@ -57,6 +57,28 @@ describe('Popover', () => {
     })
   })
 
+  describe('ConfigConstants override', () => {
+    it('should expose ConfigConstants defaults', () => {
+      expect(Popover.ConfigConstants.SELECTOR_TITLE).toBe('.popover-header')
+      expect(Popover.ConfigConstants.SELECTOR_CONTENT).toBe('.popover-body')
+    })
+
+    it('extendDefaultConfig should allow overriding template selectors', () => {
+      const CustomPopover = Popover.extendDefaultConfig({
+        SELECTOR_TITLE: '.app-popover-header',
+        SELECTOR_CONTENT: '.app-popover-content'
+      })
+
+      expect(CustomPopover.ConfigConstants.SELECTOR_TITLE).toBe('.app-popover-header')
+      expect(CustomPopover.ConfigConstants.SELECTOR_CONTENT).toBe('.app-popover-content')
+    })
+
+    it('extendDefaultConfig should not mutate parent ConfigConstants', () => {
+      Popover.extendDefaultConfig({ SELECTOR_TITLE: '.mutated-title' })
+      expect(Popover.ConfigConstants.SELECTOR_TITLE).toBe('.popover-header')
+    })
+  })
+
   describe('show', () => {
     it('should toggle a popover after show', () => {
       return new Promise(resolve => {

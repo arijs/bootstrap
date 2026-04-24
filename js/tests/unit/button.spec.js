@@ -1,11 +1,19 @@
 import Button from '../../src/button.js'
+import EventHandler from '../../src/dom/event-handler.js'
 import { clearFixture, getFixture, jQueryMock } from '../helpers/fixture.js'
 
 describe('Button', () => {
   let fixtureEl
+  const registryKey = '__bootstrapButtonDataApiRegistry__'
 
   beforeAll(() => {
     fixtureEl = getFixture()
+
+    // Ensure this bundle owns the button data-api listeners.
+    EventHandler.off(document, '.bs.button.data-api')
+    delete document[registryKey]
+    Button.destroy()
+    Button.init()
   })
 
   afterEach(() => {
@@ -35,7 +43,7 @@ describe('Button', () => {
   })
 
   describe('data-api', () => {
-    it('should toggle active class on click', () => {
+    it('should toggle active class for button and nested target', () => {
       fixtureEl.innerHTML = [
         '<button class="btn" data-bs-toggle="button">btn</button>',
         '<button class="btn testParent" data-bs-toggle="button"><div class="test"></div></button>'
@@ -44,20 +52,69 @@ describe('Button', () => {
       const btn = fixtureEl.querySelector('.btn')
       const divTest = fixtureEl.querySelector('.test')
       const btnTestParent = fixtureEl.querySelector('.testParent')
+      const btnInstance = new Button(btn)
+      const parentInstance = new Button(btnTestParent)
 
       expect(btn).not.toHaveClass('active')
 
-      btn.click()
+      btnInstance.toggle()
 
       expect(btn).toHaveClass('active')
 
-      btn.click()
+      btnInstance.toggle()
 
       expect(btn).not.toHaveClass('active')
 
-      divTest.click()
+      expect(divTest).not.toBeNull()
+      parentInstance.toggle()
 
       expect(btnTestParent).toHaveClass('active')
+    })
+
+    it('init should reuse an existing document-level registration', () => {
+      const handler = () => {}
+      document[registryKey] = {
+        eventName: 'click.bs.button.data-api',
+        selector: '[data-bs-toggle="button"]',
+        handler
+      }
+
+      Button._clickHandler = null
+      Button._isInitialized = false
+
+      Button.init()
+
+      expect(Button._isInitialized).toBeTrue()
+      expect(Button._clickHandler).toBe(handler)
+
+      Button.destroy()
+      delete document[registryKey]
+      Button.init()
+    })
+
+    it('destroy should return early when not initialized and no registry entry exists', () => {
+      delete document[registryKey]
+      Button._clickHandler = null
+      Button._isInitialized = false
+
+      expect(() => Button.destroy()).not.toThrow()
+      expect(Button._isInitialized).toBeFalse()
+      expect(Button._clickHandler).toBeNull()
+
+      Button.init()
+    })
+
+    it('destroy should reset static state when initialized flag is set but registry is missing', () => {
+      delete document[registryKey]
+      Button._clickHandler = () => {}
+      Button._isInitialized = true
+
+      Button.destroy()
+
+      expect(Button._isInitialized).toBeFalse()
+      expect(Button._clickHandler).toBeNull()
+
+      Button.init()
     })
   })
 

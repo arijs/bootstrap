@@ -88,9 +88,228 @@ describe('ScrollSpy', () => {
     })
   })
 
+  describe('ConfigConstants', () => {
+    it('should return defaults when called without overrides', () => {
+      const constants = ScrollSpy.getConfigConstants()
+
+      expect(constants.CLASS_NAME_ACTIVE).toEqual('active')
+      expect(constants.SELECTOR_DATA_SPY).toEqual('[data-bs-spy="scroll"]')
+    })
+  })
+
   describe('DATA_KEY', () => {
     it('should return plugin data key', () => {
       expect(ScrollSpy.DATA_KEY).toEqual('bs.scrollspy')
+    })
+  })
+
+  describe('data-api lifecycle', () => {
+    it('should expose init and destroy static methods', () => {
+      expect(typeof ScrollSpy.init).toBe('function')
+      expect(typeof ScrollSpy.destroy).toBe('function')
+    })
+
+    it('init should be idempotent', () => {
+      ScrollSpy.destroy()
+      expect(ScrollSpy._isInitialized).toBeFalse()
+
+      ScrollSpy.init()
+      ScrollSpy.init()
+
+      expect(ScrollSpy._isInitialized).toBeTrue()
+      ScrollSpy.destroy()
+      ScrollSpy.init()
+    })
+
+    it('destroy should return early when not initialized', () => {
+      ScrollSpy.destroy()
+      expect(ScrollSpy._isInitialized).toBeFalse()
+
+      expect(() => ScrollSpy.destroy()).not.toThrow()
+      expect(ScrollSpy._isInitialized).toBeFalse()
+
+      ScrollSpy.init()
+    })
+  })
+
+  describe('private branch behavior', () => {
+    it('should activate dropdown toggle when target is a dropdown item', () => {
+      fixtureEl.innerHTML = [
+        '<div class="dropdown">',
+        '  <button class="dropdown-toggle">Toggle</button>',
+        '  <a class="dropdown-item" href="#section">Section</a>',
+        '</div>'
+      ].join('')
+
+      const dropdownItem = fixtureEl.querySelector('.dropdown-item')
+      const dropdownToggle = fixtureEl.querySelector('.dropdown-toggle')
+      const scrollSpy = Object.create(ScrollSpy.prototype)
+
+      scrollSpy._activateParents(dropdownItem)
+
+      expect(dropdownToggle).toHaveClass('active')
+    })
+
+    it('smooth scroll handler should fallback to scrollTop when root has no scrollTo', () => {
+      fixtureEl.innerHTML = [
+        '<nav id="spy-nav">',
+        '  <a class="nav-link" href="#section-a">A</a>',
+        '</nav>',
+        '<div id="container"></div>',
+        '<section id="section-a"></section>'
+      ].join('')
+
+      const navEl = fixtureEl.querySelector('#spy-nav')
+      const anchor = fixtureEl.querySelector('a[href="#section-a"]')
+      const container = fixtureEl.querySelector('#container')
+      const section = fixtureEl.querySelector('#section-a')
+
+      Object.defineProperty(container, 'offsetTop', { value: 20, configurable: true })
+      Object.defineProperty(section, 'offsetTop', { value: 120, configurable: true })
+
+      const rootElement = { scrollTop: 0 }
+      const scrollSpy = Object.create(ScrollSpy.prototype)
+      scrollSpy._config = {
+        smoothScroll: true,
+        target: navEl
+      }
+      scrollSpy._rootElement = rootElement
+      scrollSpy._element = container
+      scrollSpy._observableSections = new Map([['#section-a', section]])
+
+      scrollSpy._maybeEnableSmoothScroll()
+
+      anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(rootElement.scrollTop).toEqual(100)
+    })
+
+    it('smooth scroll handler should use root.scrollTo when available', () => {
+      fixtureEl.innerHTML = [
+        '<nav id="spy-nav-2">',
+        '  <a class="nav-link" href="#section-b">B</a>',
+        '</nav>',
+        '<div id="container-b"></div>',
+        '<section id="section-b"></section>'
+      ].join('')
+
+      const navEl = fixtureEl.querySelector('#spy-nav-2')
+      const anchor = fixtureEl.querySelector('a[href="#section-b"]')
+      const container = fixtureEl.querySelector('#container-b')
+      const section = fixtureEl.querySelector('#section-b')
+
+      Object.defineProperty(container, 'offsetTop', { value: 10, configurable: true })
+      Object.defineProperty(section, 'offsetTop', { value: 210, configurable: true })
+
+      const rootElement = {
+        scrollTo: jasmine.createSpy('scrollTo')
+      }
+
+      const scrollSpy = Object.create(ScrollSpy.prototype)
+      scrollSpy._config = {
+        smoothScroll: true,
+        target: navEl
+      }
+      scrollSpy._rootElement = rootElement
+      scrollSpy._element = container
+      scrollSpy._observableSections = new Map([['#section-b', section]])
+
+      scrollSpy._maybeEnableSmoothScroll()
+
+      anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(rootElement.scrollTo).toHaveBeenCalledWith({ top: 200, behavior: 'smooth' })
+    })
+
+    it('observer callback should use _rootElement scrollTop when present', () => {
+      const targetLink = document.createElement('a')
+      const section = document.createElement('div')
+      section.id = 'section-c'
+      Object.defineProperty(section, 'offsetTop', { value: 50, configurable: true })
+
+      const scrollSpy = Object.create(ScrollSpy.prototype)
+      scrollSpy._rootElement = { scrollTop: 25 }
+      scrollSpy._targetLinks = new Map([['#section-c', targetLink]])
+      scrollSpy._previousScrollData = {
+        visibleEntryTop: 0,
+        parentScrollTop: 0
+      }
+      scrollSpy._clearActiveClass = jasmine.createSpy('_clearActiveClass')
+      scrollSpy._process = jasmine.createSpy('_process')
+
+      scrollSpy._observerCallback([
+        {
+          isIntersecting: false,
+          target: section
+        }
+      ])
+
+      expect(scrollSpy._previousScrollData.parentScrollTop).toEqual(25)
+      expect(scrollSpy._clearActiveClass).toHaveBeenCalledWith(targetLink)
+    })
+
+    it('smooth scroll handler should fallback to window when _rootElement is null', () => {
+      fixtureEl.innerHTML = [
+        '<nav id="spy-nav-3">',
+        '  <a class="nav-link" href="#section-d">D</a>',
+        '</nav>',
+        '<div id="container-d"></div>',
+        '<section id="section-d"></section>'
+      ].join('')
+
+      const navEl = fixtureEl.querySelector('#spy-nav-3')
+      const anchor = fixtureEl.querySelector('a[href="#section-d"]')
+      const container = fixtureEl.querySelector('#container-d')
+      const section = fixtureEl.querySelector('#section-d')
+
+      Object.defineProperty(container, 'offsetTop', { value: 5, configurable: true })
+      Object.defineProperty(section, 'offsetTop', { value: 55, configurable: true })
+
+      const scrollToSpy = spyOn(window, 'scrollTo').and.callFake(() => {})
+
+      const scrollSpy = Object.create(ScrollSpy.prototype)
+      scrollSpy._config = {
+        smoothScroll: true,
+        target: navEl
+      }
+      scrollSpy._rootElement = null
+      scrollSpy._element = container
+      scrollSpy._observableSections = new Map([['#section-d', section]])
+
+      scrollSpy._maybeEnableSmoothScroll()
+
+      anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 50, behavior: 'smooth' })
+    })
+
+    it('observer callback should fallback to documentElement scrollTop when _rootElement is null', () => {
+      const targetLink = document.createElement('a')
+      const section = document.createElement('div')
+      section.id = 'section-e'
+      Object.defineProperty(section, 'offsetTop', { value: 20, configurable: true })
+
+      spyOnProperty(document.documentElement, 'scrollTop', 'get').and.returnValue(42)
+
+      const scrollSpy = Object.create(ScrollSpy.prototype)
+      scrollSpy._rootElement = null
+      scrollSpy._targetLinks = new Map([['#section-e', targetLink]])
+      scrollSpy._previousScrollData = {
+        visibleEntryTop: 0,
+        parentScrollTop: 0
+      }
+      scrollSpy._clearActiveClass = jasmine.createSpy('_clearActiveClass')
+      scrollSpy._process = jasmine.createSpy('_process')
+
+      scrollSpy._observerCallback([
+        {
+          isIntersecting: false,
+          target: section
+        }
+      ])
+
+      expect(scrollSpy._previousScrollData.parentScrollTop).toEqual(42)
+      expect(scrollSpy._clearActiveClass).toHaveBeenCalledWith(targetLink)
     })
   })
 

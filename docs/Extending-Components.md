@@ -91,7 +91,7 @@ if (typeof document !== 'undefined') {
 
 - `enableDismissTrigger()` — added early-return guard when `document` is undefined.
 
-### Components (all 9)
+### Components (all 12)
 
 Each component was updated with the same mechanical pattern:
 
@@ -106,8 +106,11 @@ Each component was updated with the same mechanical pattern:
 | `offcanvas.js` | 17 | 3 (`click`, `load`, `resize`) |
 | `tab.js` | 26 | 2 (`click`, `load`) |
 | `scrollspy.js` | 14 | 1 (`load`) |
+| `tooltip.js` | 21 | 0 (instance listeners only) |
+| `popover.js` | 23 (inherits tooltip + 2 popover selectors) | 0 (inherits tooltip behavior) |
+| `toast.js` | 12 | 0 (instance listeners only) |
 
-For each component, the changes were:
+For Data API lifecycle-enabled components (`button`, `dropdown`, `alert`, `collapse`, `carousel`, `modal`, `offcanvas`, `tab`, `scrollspy`), the changes were:
 
 1. Moved module-level `EventHandler.on(document/window, ...)` calls into a `static init()` method, storing handler references as `static _clickHandler`, `static _loadHandler`, etc.
 2. Stored the handler reference on the class so `static destroy()` can call `EventHandler.off()` with the exact same function reference.
@@ -117,6 +120,22 @@ For each component, the changes were:
 6. Replaced module-level `EventHandler.on(...)` blocks with `if (typeof document !== 'undefined') { ComponentClass.init() }`.
 
 For components that use delegated handlers (e.g. `Dropdown.dataApiKeydownHandler`), the handler was wrapped inside `init()` using a wrapper function to ensure DOM-delegated `this` is preserved correctly.
+
+For `tooltip`, `popover`, and `toast`, the key addition was exposing structural constants through `ConfigConstants` so `extendDefaultConfig(...)` can customize internal class names/selectors/event keys without mutating parent classes. These components do not have document-level Data API wiring to move into `static init()` / `static destroy()`.
+
+`popover` specifically merges parent constants first:
+
+```js
+static getConfigConstants(overrides = {}) {
+  const defaults = {
+    ...super.getConfigConstants(),
+    SELECTOR_TITLE,
+    SELECTOR_CONTENT
+  }
+
+  return { ...defaults, ...overrides }
+}
+```
 
 ---
 
@@ -230,6 +249,111 @@ const AccordionComponent = Collapse.extendDefaultConfig({
 AccordionComponent.init()
 ```
 
+### Tooltip structural override example
+
+```js
+import Tooltip from './bootstrap-fork/js/src/tooltip.js'
+
+const CustomTooltip = Tooltip.extendDefaultConfig({
+  CLASS_NAME_SHOW: 'is-open',
+  CLASS_NAME_FADE: 'is-fading',
+  SELECTOR_TOOLTIP_INNER: '.app-tooltip-inner'
+})
+
+const instance = new CustomTooltip(document.querySelector('[data-my-tooltip]'), {
+  title: 'Custom tooltip'
+})
+
+instance.show()
+```
+
+### Popover structural override example
+
+```js
+import Popover from './bootstrap-fork/js/src/popover.js'
+
+const CustomPopover = Popover.extendDefaultConfig({
+  CLASS_NAME_SHOW: 'is-open',
+  SELECTOR_TITLE: '.app-popover-header',
+  SELECTOR_CONTENT: '.app-popover-content'
+})
+
+const instance = new CustomPopover(document.querySelector('[data-my-popover]'), {
+  title: 'Header',
+  content: 'Body'
+})
+
+instance.show()
+```
+
+### Toast structural override example
+
+```js
+import Toast from './bootstrap-fork/js/src/toast.js'
+
+const CustomToast = Toast.extendDefaultConfig({
+  CLASS_NAME_SHOW: 'is-open',
+  CLASS_NAME_SHOWING: 'is-transitioning',
+  EVENT_SHOW: 'show.bs.custom-toast'
+})
+
+const toast = new CustomToast(document.querySelector('[data-my-toast]'), {
+  autohide: false
+})
+
+toast.show()
+```
+
+### Override key reference (Tooltip / Popover / Toast)
+
+#### Tooltip
+
+Common keys to override:
+
+- `CLASS_NAME_SHOW`
+- `CLASS_NAME_FADE`
+- `SELECTOR_TOOLTIP_INNER`
+- `SELECTOR_MODAL`
+- `EVENT_SHOW`
+- `EVENT_HIDE`
+- `EVENT_SHOWN`
+- `EVENT_HIDDEN`
+- `TRIGGER_CLICK`
+- `TRIGGER_HOVER`
+- `TRIGGER_FOCUS`
+- `TRIGGER_MANUAL`
+
+#### Popover
+
+`Popover` inherits all Tooltip keys and adds:
+
+- `SELECTOR_TITLE`
+- `SELECTOR_CONTENT`
+
+Common high-impact keys in practice:
+
+- `CLASS_NAME_SHOW`
+- `CLASS_NAME_FADE`
+- `SELECTOR_TITLE`
+- `SELECTOR_CONTENT`
+
+#### Toast
+
+Common keys to override:
+
+- `CLASS_NAME_SHOW`
+- `CLASS_NAME_SHOWING`
+- `CLASS_NAME_FADE`
+- `CLASS_NAME_HIDE`
+- `EVENT_SHOW`
+- `EVENT_HIDE`
+- `EVENT_SHOWN`
+- `EVENT_HIDDEN`
+- `EVENT_MOUSEOVER`
+- `EVENT_MOUSEOUT`
+- `EVENT_FOCUSIN`
+- `EVENT_FOCUSOUT`
+
 ---
 
 ## Lessons Learned
@@ -296,3 +420,9 @@ The subclass returned by `extendDefaultConfig` does not define its own `static g
 ### 8. `enableDismissTrigger` is external to the component lifecycle
 
 Components that use `enableDismissTrigger` (Alert, Modal, Offcanvas) wire their dismiss listener outside the class, after the class definition. This listener is currently not managed by `init()` / `destroy()`. If a consumer needs to rewire dismiss behavior for a custom subclass, they should call `enableDismissTrigger(CustomComponent)` explicitly.
+
+### 9. Inherited components should merge parent `ConfigConstants`
+
+`Popover` extends `Tooltip`, so overriding `getConfigConstants()` in `Popover` must include `...super.getConfigConstants()` first. Otherwise, inherited internals (for example attachment maps and shared tooltip selectors/events) may be dropped.
+
+**Lesson:** For subclassed components, always merge parent structural constants before adding child-specific ones.
