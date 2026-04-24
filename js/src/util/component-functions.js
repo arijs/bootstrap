@@ -10,6 +10,10 @@ import SelectorEngine from '../dom/selector-engine.js'
 import { isDisabled } from './index.js'
 
 const enableDismissTrigger = (component, method = 'hide') => {
+  if (typeof document === 'undefined') {
+    return
+  }
+
   const clickEvent = `click.dismiss${component.EVENT_KEY}`
   const name = component.NAME
 

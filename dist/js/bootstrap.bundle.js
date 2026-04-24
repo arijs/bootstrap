@@ -1,6 +1,6 @@
 /*!
   * Bootstrap v5.3.8 (https://getbootstrap.com/)
-  * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2026 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
@@ -218,6 +218,9 @@
   };
   const DOMContentLoadedCallbacks = [];
   const onDOMContentLoaded = callback => {
+    if (typeof document === 'undefined') {
+      return;
+    }
     if (document.readyState === 'loading') {
       // add listener on the first call when the document is in loading state
       if (!DOMContentLoadedCallbacks.length) {
@@ -232,7 +235,7 @@
       callback();
     }
   };
-  const isRTL = () => document.documentElement.dir === 'rtl';
+  const isRTL = () => typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
   const defineJQueryPlugin = plugin => {
     onDOMContentLoaded(() => {
       const $ = getjQuery();
@@ -704,6 +707,87 @@
     static eventName(name) {
       return `${name}${this.EVENT_KEY}`;
     }
+
+    // Config constants override support
+    static getConfigConstants(overrides = {}) {
+      return overrides;
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
+    static extendDefaultConfig(overrides = {}) {
+      const parentClass = this;
+
+      // Helper to split flat overrides into Default, DefaultType, and ConfigConstants
+      const splitOverrides = (flat = {}) => {
+        const parentDefault = parentClass.Default || {};
+        const parentDefaultType = parentClass.DefaultType || {};
+        const parentConfigConstants = parentClass.ConfigConstants || {};
+        const newDefault = {};
+        const newDefaultType = {};
+        const newConfigConstants = {};
+
+        // Merge all parent values first
+        Object.assign(newDefault, parentDefault);
+        Object.assign(newDefaultType, parentDefaultType);
+        Object.assign(newConfigConstants, parentConfigConstants);
+
+        // Classify incoming overrides
+        for (const [key, value] of Object.entries(flat)) {
+          // If key exists in parent Default or DefaultType, it's an instance option
+          if (key in parentDefault || key in parentDefaultType) {
+            newDefault[key] = value;
+            // Infer type if not already in DefaultType
+            if (!(key in parentDefaultType)) {
+              const valueType = Array.isArray(value) ? 'array' : typeof value;
+              if (valueType === 'object') {
+                newDefaultType[key] = '(null|object|function)';
+              } else if (valueType === 'boolean') {
+                newDefaultType[key] = '(boolean|string)';
+              } else if (valueType === 'string') {
+                newDefaultType[key] = 'string';
+              } else {
+                newDefaultType[key] = valueType;
+              }
+            }
+          } else {
+            // Otherwise treat as structural constant
+            newConfigConstants[key] = value;
+          }
+        }
+        return {
+          newDefault,
+          newDefaultType,
+          newConfigConstants
+        };
+      };
+      const {
+        newDefault,
+        newDefaultType,
+        newConfigConstants
+      } = splitOverrides(overrides);
+
+      // Create a new subclass
+      return class extends parentClass {
+        static get Default() {
+          return newDefault;
+        }
+        static get DefaultType() {
+          return newDefaultType;
+        }
+        static get ConfigConstants() {
+          return newConfigConstants;
+        }
+        static getConfigConstants(furtherOverrides = {}) {
+          // Support chaining: if someone calls getConfigConstants on the returned subclass
+          const merged = {
+            ...newConfigConstants,
+            ...furtherOverrides
+          };
+          return merged;
+        }
+      };
+    }
   }
 
   /**
@@ -803,6 +887,9 @@
    */
 
   const enableDismissTrigger = (component, method = 'hide') => {
+    if (typeof document === 'undefined') {
+      return;
+    }
     const clickEvent = `click.dismiss${component.EVENT_KEY}`;
     const name = component.NAME;
     EventHandler.on(document, clickEvent, `[data-bs-dismiss="${name}"]`, function (event) {
@@ -833,12 +920,12 @@
    */
 
   const NAME$f = 'alert';
-  const DATA_KEY$a = 'bs.alert';
-  const EVENT_KEY$b = `.${DATA_KEY$a}`;
-  const EVENT_CLOSE = `close${EVENT_KEY$b}`;
-  const EVENT_CLOSED = `closed${EVENT_KEY$b}`;
+  const DATA_KEY$8 = 'bs.alert';
+  const EVENT_KEY$9 = `.${DATA_KEY$8}`;
+  const EVENT_CLOSE = `close${EVENT_KEY$9}`;
+  const EVENT_CLOSED = `closed${EVENT_KEY$9}`;
   const CLASS_NAME_FADE$5 = 'fade';
-  const CLASS_NAME_SHOW$8 = 'show';
+  const CLASS_NAME_SHOW$7 = 'show';
 
   /**
    * Class definition
@@ -849,22 +936,49 @@
     static get NAME() {
       return NAME$f;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        EVENT_CLOSE,
+        EVENT_CLOSED,
+        CLASS_NAME_FADE: CLASS_NAME_FADE$5,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$7
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
+    static init() {
+      // Alert has no module-level listeners; all are handled by enableDismissTrigger
+    }
+    static destroy() {
+      // Alert has no module-level listeners; all are handled by enableDismissTrigger
+    }
 
     // Public
     close() {
+      const {
+        EVENT_CLOSE,
+        CLASS_NAME_SHOW,
+        CLASS_NAME_FADE,
+        EVENT_CLOSED
+      } = this.constructor.ConfigConstants;
       const closeEvent = EventHandler.trigger(this._element, EVENT_CLOSE);
       if (closeEvent.defaultPrevented) {
         return;
       }
-      this._element.classList.remove(CLASS_NAME_SHOW$8);
-      const isAnimated = this._element.classList.contains(CLASS_NAME_FADE$5);
-      this._queueCallback(() => this._destroyElement(), this._element, isAnimated);
+      this._element.classList.remove(CLASS_NAME_SHOW);
+      const isAnimated = this._element.classList.contains(CLASS_NAME_FADE);
+      this._queueCallback(() => this._destroyElement(EVENT_CLOSED), this._element, isAnimated);
     }
 
     // Private
-    _destroyElement() {
+    _destroyElement(eventClosed) {
       this._element.remove();
-      EventHandler.trigger(this._element, EVENT_CLOSED);
+      EventHandler.trigger(this._element, eventClosed);
       this.dispose();
     }
 
@@ -908,12 +1022,6 @@
    */
 
   const NAME$e = 'button';
-  const DATA_KEY$9 = 'bs.button';
-  const EVENT_KEY$a = `.${DATA_KEY$9}`;
-  const DATA_API_KEY$6 = '.data-api';
-  const CLASS_NAME_ACTIVE$3 = 'active';
-  const SELECTOR_DATA_TOGGLE$5 = '[data-bs-toggle="button"]';
-  const EVENT_CLICK_DATA_API$6 = `click${EVENT_KEY$a}${DATA_API_KEY$6}`;
 
   /**
    * Class definition
@@ -924,11 +1032,27 @@
     static get NAME() {
       return NAME$e;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        CLASS_NAME_ACTIVE: 'active',
+        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="button"]',
+        DATA_API_KEY: '.data-api'
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     toggle() {
-      // Toggle class and sync the `aria-pressed` attribute with the return value of the `.toggle()` method
-      this._element.setAttribute('aria-pressed', this._element.classList.toggle(CLASS_NAME_ACTIVE$3));
+      const {
+        CLASS_NAME_ACTIVE
+      } = this.constructor.ConfigConstants;
+      this._element.setAttribute('aria-pressed', this._element.classList.toggle(CLASS_NAME_ACTIVE));
     }
 
     // Static
@@ -940,24 +1064,48 @@
         }
       });
     }
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      const {
+        SELECTOR_DATA_TOGGLE,
+        DATA_API_KEY
+      } = this.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      this._clickHandler = event => {
+        event.preventDefault();
+        const button = event.target.closest(SELECTOR_DATA_TOGGLE);
+        const data = this.getOrCreateInstance(button);
+        data.toggle();
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      defineJQueryPlugin(this);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      const {
+        SELECTOR_DATA_TOGGLE,
+        DATA_API_KEY
+      } = this.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._clickHandler = null;
+      this._isInitialized = false;
+    }
   }
 
   /**
-   * Data API implementation
+   * Init on import (browser only)
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API$6, SELECTOR_DATA_TOGGLE$5, event => {
-    event.preventDefault();
-    const button = event.target.closest(SELECTOR_DATA_TOGGLE$5);
-    const data = Button.getOrCreateInstance(button);
-    data.toggle();
-  });
-
-  /**
-   * jQuery
-   */
-
-  defineJQueryPlugin(Button);
+  Button._isInitialized = false;
+  Button._clickHandler = null;
+  if (typeof document !== 'undefined') {
+    Button.init();
+  }
 
   /**
    * --------------------------------------------------------------------------
@@ -972,12 +1120,12 @@
    */
 
   const NAME$d = 'swipe';
-  const EVENT_KEY$9 = '.bs.swipe';
-  const EVENT_TOUCHSTART = `touchstart${EVENT_KEY$9}`;
-  const EVENT_TOUCHMOVE = `touchmove${EVENT_KEY$9}`;
-  const EVENT_TOUCHEND = `touchend${EVENT_KEY$9}`;
-  const EVENT_POINTERDOWN = `pointerdown${EVENT_KEY$9}`;
-  const EVENT_POINTERUP = `pointerup${EVENT_KEY$9}`;
+  const EVENT_KEY$8 = '.bs.swipe';
+  const EVENT_TOUCHSTART = `touchstart${EVENT_KEY$8}`;
+  const EVENT_TOUCHMOVE = `touchmove${EVENT_KEY$8}`;
+  const EVENT_TOUCHEND = `touchend${EVENT_KEY$8}`;
+  const EVENT_POINTERDOWN = `pointerdown${EVENT_KEY$8}`;
+  const EVENT_POINTERUP = `pointerup${EVENT_KEY$8}`;
   const POINTER_TYPE_TOUCH = 'touch';
   const POINTER_TYPE_PEN = 'pen';
   const CLASS_NAME_POINTER_EVENT = 'pointer-event';
@@ -1023,7 +1171,7 @@
 
     // Public
     dispose() {
-      EventHandler.off(this._element, EVENT_KEY$9);
+      EventHandler.off(this._element, EVENT_KEY$8);
     }
 
     // Private
@@ -1092,9 +1240,9 @@
    */
 
   const NAME$c = 'carousel';
-  const DATA_KEY$8 = 'bs.carousel';
-  const EVENT_KEY$8 = `.${DATA_KEY$8}`;
-  const DATA_API_KEY$5 = '.data-api';
+  const DATA_KEY$7 = 'bs.carousel';
+  const EVENT_KEY$7 = `.${DATA_KEY$7}`;
+  const DATA_API_KEY$4 = '.data-api';
   const ARROW_LEFT_KEY$1 = 'ArrowLeft';
   const ARROW_RIGHT_KEY$1 = 'ArrowRight';
   const TOUCHEVENT_COMPAT_WAIT = 500; // Time for mouse compat events to fire after touch
@@ -1103,14 +1251,14 @@
   const ORDER_PREV = 'prev';
   const DIRECTION_LEFT = 'left';
   const DIRECTION_RIGHT = 'right';
-  const EVENT_SLIDE = `slide${EVENT_KEY$8}`;
-  const EVENT_SLID = `slid${EVENT_KEY$8}`;
-  const EVENT_KEYDOWN$1 = `keydown${EVENT_KEY$8}`;
-  const EVENT_MOUSEENTER$1 = `mouseenter${EVENT_KEY$8}`;
-  const EVENT_MOUSELEAVE$1 = `mouseleave${EVENT_KEY$8}`;
-  const EVENT_DRAG_START = `dragstart${EVENT_KEY$8}`;
-  const EVENT_LOAD_DATA_API$3 = `load${EVENT_KEY$8}${DATA_API_KEY$5}`;
-  const EVENT_CLICK_DATA_API$5 = `click${EVENT_KEY$8}${DATA_API_KEY$5}`;
+  const EVENT_SLIDE = `slide${EVENT_KEY$7}`;
+  const EVENT_SLID = `slid${EVENT_KEY$7}`;
+  const EVENT_KEYDOWN$1 = `keydown${EVENT_KEY$7}`;
+  const EVENT_MOUSEENTER$1 = `mouseenter${EVENT_KEY$7}`;
+  const EVENT_MOUSELEAVE$1 = `mouseleave${EVENT_KEY$7}`;
+  const EVENT_DRAG_START = `dragstart${EVENT_KEY$7}`;
+  const EVENT_LOAD_DATA_API$3 = `load${EVENT_KEY$7}${DATA_API_KEY$4}`;
+  const EVENT_CLICK_DATA_API$4 = `click${EVENT_KEY$7}${DATA_API_KEY$4}`;
   const CLASS_NAME_CAROUSEL = 'carousel';
   const CLASS_NAME_ACTIVE$2 = 'active';
   const CLASS_NAME_SLIDE = 'slide';
@@ -1175,6 +1323,48 @@
     }
     static get NAME() {
       return NAME$c;
+    }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ARROW_LEFT_KEY: ARROW_LEFT_KEY$1,
+        ARROW_RIGHT_KEY: ARROW_RIGHT_KEY$1,
+        TOUCHEVENT_COMPAT_WAIT,
+        ORDER_NEXT,
+        ORDER_PREV,
+        DIRECTION_LEFT,
+        DIRECTION_RIGHT,
+        EVENT_SLIDE,
+        EVENT_SLID,
+        EVENT_KEYDOWN: EVENT_KEYDOWN$1,
+        EVENT_MOUSEENTER: EVENT_MOUSEENTER$1,
+        EVENT_MOUSELEAVE: EVENT_MOUSELEAVE$1,
+        EVENT_DRAG_START,
+        EVENT_LOAD_DATA_API: EVENT_LOAD_DATA_API$3,
+        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$4,
+        CLASS_NAME_CAROUSEL,
+        CLASS_NAME_ACTIVE: CLASS_NAME_ACTIVE$2,
+        CLASS_NAME_SLIDE,
+        CLASS_NAME_END,
+        CLASS_NAME_START,
+        CLASS_NAME_NEXT,
+        CLASS_NAME_PREV,
+        SELECTOR_ACTIVE,
+        SELECTOR_ITEM,
+        SELECTOR_ACTIVE_ITEM,
+        SELECTOR_ITEM_IMG,
+        SELECTOR_INDICATORS,
+        SELECTOR_DATA_SLIDE,
+        SELECTOR_DATA_RIDE,
+        KEY_TO_DIRECTION,
+        DATA_API_KEY: DATA_API_KEY$4
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
     }
 
     // Public
@@ -1397,6 +1587,53 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._clickHandler = function (event) {
+        const target = SelectorEngine.getElementFromSelector(this);
+        if (!target || !target.classList.contains(CLASS_NAME_CAROUSEL)) {
+          return;
+        }
+        event.preventDefault();
+        const carousel = Carousel.getOrCreateInstance(target);
+        const slideIndex = this.getAttribute('data-bs-slide-to');
+        if (slideIndex) {
+          carousel.to(slideIndex);
+          carousel._maybeEnableCycle();
+          return;
+        }
+        if (Manipulator.getDataAttribute(this, 'slide') === 'next') {
+          carousel.next();
+          carousel._maybeEnableCycle();
+          return;
+        }
+        carousel.prev();
+        carousel._maybeEnableCycle();
+      };
+      this._loadHandler = () => {
+        const carousels = SelectorEngine.find(SELECTOR_DATA_RIDE);
+        for (const carousel of carousels) {
+          Carousel.getOrCreateInstance(carousel);
+        }
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_SLIDE, this._clickHandler);
+      EventHandler.on(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_SLIDE, this._clickHandler);
+      EventHandler.off(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       return this.each(function () {
         const data = Carousel.getOrCreateInstance(this, config);
@@ -1417,34 +1654,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API$5, SELECTOR_DATA_SLIDE, function (event) {
-    const target = SelectorEngine.getElementFromSelector(this);
-    if (!target || !target.classList.contains(CLASS_NAME_CAROUSEL)) {
-      return;
-    }
-    event.preventDefault();
-    const carousel = Carousel.getOrCreateInstance(target);
-    const slideIndex = this.getAttribute('data-bs-slide-to');
-    if (slideIndex) {
-      carousel.to(slideIndex);
-      carousel._maybeEnableCycle();
-      return;
-    }
-    if (Manipulator.getDataAttribute(this, 'slide') === 'next') {
-      carousel.next();
-      carousel._maybeEnableCycle();
-      return;
-    }
-    carousel.prev();
-    carousel._maybeEnableCycle();
-  });
-  EventHandler.on(window, EVENT_LOAD_DATA_API$3, () => {
-    const carousels = SelectorEngine.find(SELECTOR_DATA_RIDE);
-    for (const carousel of carousels) {
-      Carousel.getOrCreateInstance(carousel);
-    }
-  });
+  Carousel._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Carousel.init();
+  }
 
   /**
    * jQuery
@@ -1465,15 +1678,15 @@
    */
 
   const NAME$b = 'collapse';
-  const DATA_KEY$7 = 'bs.collapse';
-  const EVENT_KEY$7 = `.${DATA_KEY$7}`;
-  const DATA_API_KEY$4 = '.data-api';
-  const EVENT_SHOW$6 = `show${EVENT_KEY$7}`;
-  const EVENT_SHOWN$6 = `shown${EVENT_KEY$7}`;
-  const EVENT_HIDE$6 = `hide${EVENT_KEY$7}`;
-  const EVENT_HIDDEN$6 = `hidden${EVENT_KEY$7}`;
-  const EVENT_CLICK_DATA_API$4 = `click${EVENT_KEY$7}${DATA_API_KEY$4}`;
-  const CLASS_NAME_SHOW$7 = 'show';
+  const DATA_KEY$6 = 'bs.collapse';
+  const EVENT_KEY$6 = `.${DATA_KEY$6}`;
+  const DATA_API_KEY$3 = '.data-api';
+  const EVENT_SHOW$5 = `show${EVENT_KEY$6}`;
+  const EVENT_SHOWN$5 = `shown${EVENT_KEY$6}`;
+  const EVENT_HIDE$5 = `hide${EVENT_KEY$6}`;
+  const EVENT_HIDDEN$5 = `hidden${EVENT_KEY$6}`;
+  const EVENT_CLICK_DATA_API$3 = `click${EVENT_KEY$6}${DATA_API_KEY$3}`;
+  const CLASS_NAME_SHOW$6 = 'show';
   const CLASS_NAME_COLLAPSE = 'collapse';
   const CLASS_NAME_COLLAPSING = 'collapsing';
   const CLASS_NAME_COLLAPSED = 'collapsed';
@@ -1482,7 +1695,7 @@
   const WIDTH = 'width';
   const HEIGHT = 'height';
   const SELECTOR_ACTIVES = '.collapse.show, .collapse.collapsing';
-  const SELECTOR_DATA_TOGGLE$4 = '[data-bs-toggle="collapse"]';
+  const SELECTOR_DATA_TOGGLE$3 = '[data-bs-toggle="collapse"]';
   const Default$a = {
     parent: null,
     toggle: true
@@ -1501,7 +1714,7 @@
       super(element, config);
       this._isTransitioning = false;
       this._triggerArray = [];
-      const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE$4);
+      const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE$3);
       for (const elem of toggleList) {
         const selector = SelectorEngine.getSelectorFromElement(elem);
         const filterElement = SelectorEngine.find(selector).filter(foundElement => foundElement === this._element);
@@ -1528,6 +1741,33 @@
     static get NAME() {
       return NAME$b;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        EVENT_SHOW: EVENT_SHOW$5,
+        EVENT_SHOWN: EVENT_SHOWN$5,
+        EVENT_HIDE: EVENT_HIDE$5,
+        EVENT_HIDDEN: EVENT_HIDDEN$5,
+        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$3,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$6,
+        CLASS_NAME_COLLAPSE,
+        CLASS_NAME_COLLAPSING,
+        CLASS_NAME_COLLAPSED,
+        CLASS_NAME_DEEPER_CHILDREN,
+        CLASS_NAME_HORIZONTAL,
+        WIDTH,
+        HEIGHT,
+        SELECTOR_ACTIVES,
+        SELECTOR_DATA_TOGGLE: SELECTOR_DATA_TOGGLE$3,
+        DATA_API_KEY: DATA_API_KEY$3
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     toggle() {
@@ -1552,7 +1792,7 @@
       if (activeChildren.length && activeChildren[0]._isTransitioning) {
         return;
       }
-      const startEvent = EventHandler.trigger(this._element, EVENT_SHOW$6);
+      const startEvent = EventHandler.trigger(this._element, EVENT_SHOW$5);
       if (startEvent.defaultPrevented) {
         return;
       }
@@ -1568,9 +1808,9 @@
       const complete = () => {
         this._isTransitioning = false;
         this._element.classList.remove(CLASS_NAME_COLLAPSING);
-        this._element.classList.add(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$7);
+        this._element.classList.add(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$6);
         this._element.style[dimension] = '';
-        EventHandler.trigger(this._element, EVENT_SHOWN$6);
+        EventHandler.trigger(this._element, EVENT_SHOWN$5);
       };
       const capitalizedDimension = dimension[0].toUpperCase() + dimension.slice(1);
       const scrollSize = `scroll${capitalizedDimension}`;
@@ -1581,7 +1821,7 @@
       if (this._isTransitioning || !this._isShown()) {
         return;
       }
-      const startEvent = EventHandler.trigger(this._element, EVENT_HIDE$6);
+      const startEvent = EventHandler.trigger(this._element, EVENT_HIDE$5);
       if (startEvent.defaultPrevented) {
         return;
       }
@@ -1589,7 +1829,7 @@
       this._element.style[dimension] = `${this._element.getBoundingClientRect()[dimension]}px`;
       reflow(this._element);
       this._element.classList.add(CLASS_NAME_COLLAPSING);
-      this._element.classList.remove(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$7);
+      this._element.classList.remove(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$6);
       for (const trigger of this._triggerArray) {
         const element = SelectorEngine.getElementFromSelector(trigger);
         if (element && !this._isShown(element)) {
@@ -1601,7 +1841,7 @@
         this._isTransitioning = false;
         this._element.classList.remove(CLASS_NAME_COLLAPSING);
         this._element.classList.add(CLASS_NAME_COLLAPSE);
-        EventHandler.trigger(this._element, EVENT_HIDDEN$6);
+        EventHandler.trigger(this._element, EVENT_HIDDEN$5);
       };
       this._element.style[dimension] = '';
       this._queueCallback(complete, this._element, true);
@@ -1609,7 +1849,7 @@
 
     // Private
     _isShown(element = this._element) {
-      return element.classList.contains(CLASS_NAME_SHOW$7);
+      return element.classList.contains(CLASS_NAME_SHOW$6);
     }
     _configAfterMerge(config) {
       config.toggle = Boolean(config.toggle); // Coerce string values
@@ -1623,7 +1863,7 @@
       if (!this._config.parent) {
         return;
       }
-      const children = this._getFirstLevelChildren(SELECTOR_DATA_TOGGLE$4);
+      const children = this._getFirstLevelChildren(SELECTOR_DATA_TOGGLE$3);
       for (const element of children) {
         const selected = SelectorEngine.getElementFromSelector(element);
         if (selected) {
@@ -1647,6 +1887,35 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._clickHandler = function (event) {
+        // preventDefault only for <a> elements (which change the URL) not inside the collapsible element
+        if (event.target.tagName === 'A' || event.delegateTarget && event.delegateTarget.tagName === 'A') {
+          event.preventDefault();
+        }
+        for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
+          Collapse.getOrCreateInstance(element, {
+            toggle: false
+          }).toggle();
+        }
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, this._clickHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, this._clickHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       const _config = {};
       if (typeof config === 'string' && /show|hide/.test(config)) {
@@ -1667,18 +1936,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_TOGGLE$4, function (event) {
-    // preventDefault only for <a> elements (which change the URL) not inside the collapsible element
-    if (event.target.tagName === 'A' || event.delegateTarget && event.delegateTarget.tagName === 'A') {
-      event.preventDefault();
-    }
-    for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-      Collapse.getOrCreateInstance(element, {
-        toggle: false
-      }).toggle();
-    }
-  });
+  Collapse._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Collapse.init();
+  }
 
   /**
    * jQuery
@@ -3469,12 +3730,6 @@
       return instance;
     };
   }
-  var createPopper$2 = /*#__PURE__*/popperGenerator(); // eslint-disable-next-line import/no-unused-modules
-
-  var defaultModifiers$1 = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1];
-  var createPopper$1 = /*#__PURE__*/popperGenerator({
-    defaultModifiers: defaultModifiers$1
-  }); // eslint-disable-next-line import/no-unused-modules
 
   var defaultModifiers = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1, offset$1, flip$1, preventOverflow$1, arrow$1, hide$1];
   var createPopper = /*#__PURE__*/popperGenerator({
@@ -3497,8 +3752,6 @@
     clippingParents,
     computeStyles: computeStyles$1,
     createPopper,
-    createPopperBase: createPopper$2,
-    createPopperLite: createPopper$1,
     detectOverflow,
     end,
     eventListeners,
@@ -3536,42 +3789,6 @@
    */
 
   const NAME$a = 'dropdown';
-  const DATA_KEY$6 = 'bs.dropdown';
-  const EVENT_KEY$6 = `.${DATA_KEY$6}`;
-  const DATA_API_KEY$3 = '.data-api';
-  const ESCAPE_KEY$2 = 'Escape';
-  const TAB_KEY$1 = 'Tab';
-  const ARROW_UP_KEY$1 = 'ArrowUp';
-  const ARROW_DOWN_KEY$1 = 'ArrowDown';
-  const RIGHT_MOUSE_BUTTON = 2; // MouseEvent.button value for the secondary button, usually the right button
-
-  const EVENT_HIDE$5 = `hide${EVENT_KEY$6}`;
-  const EVENT_HIDDEN$5 = `hidden${EVENT_KEY$6}`;
-  const EVENT_SHOW$5 = `show${EVENT_KEY$6}`;
-  const EVENT_SHOWN$5 = `shown${EVENT_KEY$6}`;
-  const EVENT_CLICK_DATA_API$3 = `click${EVENT_KEY$6}${DATA_API_KEY$3}`;
-  const EVENT_KEYDOWN_DATA_API = `keydown${EVENT_KEY$6}${DATA_API_KEY$3}`;
-  const EVENT_KEYUP_DATA_API = `keyup${EVENT_KEY$6}${DATA_API_KEY$3}`;
-  const CLASS_NAME_SHOW$6 = 'show';
-  const CLASS_NAME_DROPUP = 'dropup';
-  const CLASS_NAME_DROPEND = 'dropend';
-  const CLASS_NAME_DROPSTART = 'dropstart';
-  const CLASS_NAME_DROPUP_CENTER = 'dropup-center';
-  const CLASS_NAME_DROPDOWN_CENTER = 'dropdown-center';
-  const SELECTOR_DATA_TOGGLE$3 = '[data-bs-toggle="dropdown"]:not(.disabled):not(:disabled)';
-  const SELECTOR_DATA_TOGGLE_SHOWN = `${SELECTOR_DATA_TOGGLE$3}.${CLASS_NAME_SHOW$6}`;
-  const SELECTOR_MENU = '.dropdown-menu';
-  const SELECTOR_NAVBAR = '.navbar';
-  const SELECTOR_NAVBAR_NAV = '.navbar-nav';
-  const SELECTOR_VISIBLE_ITEMS = '.dropdown-menu .dropdown-item:not(.disabled):not(:disabled)';
-  const PLACEMENT_TOP = isRTL() ? 'top-end' : 'top-start';
-  const PLACEMENT_TOPEND = isRTL() ? 'top-start' : 'top-end';
-  const PLACEMENT_BOTTOM = isRTL() ? 'bottom-end' : 'bottom-start';
-  const PLACEMENT_BOTTOMEND = isRTL() ? 'bottom-start' : 'bottom-end';
-  const PLACEMENT_RIGHT = isRTL() ? 'left-start' : 'right-start';
-  const PLACEMENT_LEFT = isRTL() ? 'right-start' : 'left-start';
-  const PLACEMENT_TOPCENTER = 'top';
-  const PLACEMENT_BOTTOMCENTER = 'bottom';
   const Default$9 = {
     autoClose: true,
     boundary: 'clippingParents',
@@ -3599,6 +3816,9 @@
       this._popper = null;
       this._parent = this._element.parentNode; // dropdown wrapper
       // TODO: v6 revert #37011 & change markup https://getbootstrap.com/docs/5.3/forms/input-group/
+      const {
+        SELECTOR_MENU
+      } = this.constructor.ConfigConstants;
       this._menu = SelectorEngine.next(this._element, SELECTOR_MENU)[0] || SelectorEngine.prev(this._element, SELECTOR_MENU)[0] || SelectorEngine.findOne(SELECTOR_MENU, this._parent);
       this._inNavbar = this._detectNavbar();
     }
@@ -3613,6 +3833,42 @@
     static get NAME() {
       return NAME$a;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ESCAPE_KEY: 'Escape',
+        TAB_KEY: 'Tab',
+        ARROW_UP_KEY: 'ArrowUp',
+        ARROW_DOWN_KEY: 'ArrowDown',
+        RIGHT_MOUSE_BUTTON: 2,
+        CLASS_NAME_SHOW: 'show',
+        CLASS_NAME_DROPUP: 'dropup',
+        CLASS_NAME_DROPEND: 'dropend',
+        CLASS_NAME_DROPSTART: 'dropstart',
+        CLASS_NAME_DROPUP_CENTER: 'dropup-center',
+        CLASS_NAME_DROPDOWN_CENTER: 'dropdown-center',
+        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="dropdown"]:not(.disabled):not(:disabled)',
+        SELECTOR_MENU: '.dropdown-menu',
+        SELECTOR_NAVBAR: '.navbar',
+        SELECTOR_NAVBAR_NAV: '.navbar-nav',
+        SELECTOR_VISIBLE_ITEMS: '.dropdown-menu .dropdown-item:not(.disabled):not(:disabled)',
+        PLACEMENT_TOP: isRTL() ? 'top-end' : 'top-start',
+        PLACEMENT_TOPEND: isRTL() ? 'top-start' : 'top-end',
+        PLACEMENT_BOTTOM: isRTL() ? 'bottom-end' : 'bottom-start',
+        PLACEMENT_BOTTOMEND: isRTL() ? 'bottom-start' : 'bottom-end',
+        PLACEMENT_RIGHT: isRTL() ? 'left-start' : 'right-start',
+        PLACEMENT_LEFT: isRTL() ? 'right-start' : 'left-start',
+        PLACEMENT_TOPCENTER: 'top',
+        PLACEMENT_BOTTOMCENTER: 'bottom',
+        DATA_API_KEY: '.data-api'
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     toggle() {
@@ -3622,10 +3878,16 @@
       if (isDisabled(this._element) || this._isShown()) {
         return;
       }
+      const {
+        CLASS_NAME_SHOW,
+        SELECTOR_NAVBAR_NAV
+      } = this.constructor.ConfigConstants;
+      const EVENT_SHOW = `show${this.constructor.EVENT_KEY}`;
+      const EVENT_SHOWN = `shown${this.constructor.EVENT_KEY}`;
       const relatedTarget = {
         relatedTarget: this._element
       };
-      const showEvent = EventHandler.trigger(this._element, EVENT_SHOW$5, relatedTarget);
+      const showEvent = EventHandler.trigger(this._element, EVENT_SHOW, relatedTarget);
       if (showEvent.defaultPrevented) {
         return;
       }
@@ -3642,9 +3904,9 @@
       }
       this._element.focus();
       this._element.setAttribute('aria-expanded', true);
-      this._menu.classList.add(CLASS_NAME_SHOW$6);
-      this._element.classList.add(CLASS_NAME_SHOW$6);
-      EventHandler.trigger(this._element, EVENT_SHOWN$5, relatedTarget);
+      this._menu.classList.add(CLASS_NAME_SHOW);
+      this._element.classList.add(CLASS_NAME_SHOW);
+      EventHandler.trigger(this._element, EVENT_SHOWN, relatedTarget);
     }
     hide() {
       if (isDisabled(this._element) || !this._isShown()) {
@@ -3670,7 +3932,12 @@
 
     // Private
     _completeHide(relatedTarget) {
-      const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE$5, relatedTarget);
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
+      const EVENT_HIDE = `hide${this.constructor.EVENT_KEY}`;
+      const EVENT_HIDDEN = `hidden${this.constructor.EVENT_KEY}`;
+      const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE, relatedTarget);
       if (hideEvent.defaultPrevented) {
         return;
       }
@@ -3685,11 +3952,11 @@
       if (this._popper) {
         this._popper.destroy();
       }
-      this._menu.classList.remove(CLASS_NAME_SHOW$6);
-      this._element.classList.remove(CLASS_NAME_SHOW$6);
+      this._menu.classList.remove(CLASS_NAME_SHOW);
+      this._element.classList.remove(CLASS_NAME_SHOW);
       this._element.setAttribute('aria-expanded', 'false');
       Manipulator.removeDataAttribute(this._menu, 'popper');
-      EventHandler.trigger(this._element, EVENT_HIDDEN$5, relatedTarget);
+      EventHandler.trigger(this._element, EVENT_HIDDEN, relatedTarget);
     }
     _getConfig(config) {
       config = super._getConfig(config);
@@ -3715,9 +3982,27 @@
       this._popper = createPopper(referenceElement, this._menu, popperConfig);
     }
     _isShown() {
-      return this._menu.classList.contains(CLASS_NAME_SHOW$6);
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
+      return this._menu.classList.contains(CLASS_NAME_SHOW);
     }
     _getPlacement() {
+      const {
+        CLASS_NAME_DROPEND,
+        CLASS_NAME_DROPSTART,
+        CLASS_NAME_DROPUP_CENTER,
+        CLASS_NAME_DROPDOWN_CENTER,
+        CLASS_NAME_DROPUP,
+        PLACEMENT_RIGHT,
+        PLACEMENT_LEFT,
+        PLACEMENT_TOPCENTER,
+        PLACEMENT_BOTTOMCENTER,
+        PLACEMENT_TOPEND,
+        PLACEMENT_TOP,
+        PLACEMENT_BOTTOMEND,
+        PLACEMENT_BOTTOM
+      } = this.constructor.ConfigConstants;
       const parentDropdown = this._parent;
       if (parentDropdown.classList.contains(CLASS_NAME_DROPEND)) {
         return PLACEMENT_RIGHT;
@@ -3740,6 +4025,9 @@
       return isEnd ? PLACEMENT_BOTTOMEND : PLACEMENT_BOTTOM;
     }
     _detectNavbar() {
+      const {
+        SELECTOR_NAVBAR
+      } = this.constructor.ConfigConstants;
       return this._element.closest(SELECTOR_NAVBAR) !== null;
     }
     _getOffset() {
@@ -3787,6 +4075,10 @@
       key,
       target
     }) {
+      const {
+        ARROW_DOWN_KEY,
+        SELECTOR_VISIBLE_ITEMS
+      } = this.constructor.ConfigConstants;
       const items = SelectorEngine.find(SELECTOR_VISIBLE_ITEMS, this._menu).filter(element => isVisible(element));
       if (!items.length) {
         return;
@@ -3794,7 +4086,7 @@
 
       // if target isn't included in items (e.g. when expanding the dropdown)
       // allow cycling to get the last item in case key equals ARROW_UP_KEY
-      getNextActiveElement(items, target, key === ARROW_DOWN_KEY$1, !items.includes(target)).focus();
+      getNextActiveElement(items, target, key === ARROW_DOWN_KEY, !items.includes(target)).focus();
     }
 
     // Static
@@ -3811,12 +4103,20 @@
       });
     }
     static clearMenus(event) {
-      if (event.button === RIGHT_MOUSE_BUTTON || event.type === 'keyup' && event.key !== TAB_KEY$1) {
+      const Class = this;
+      const {
+        RIGHT_MOUSE_BUTTON,
+        TAB_KEY,
+        SELECTOR_DATA_TOGGLE,
+        CLASS_NAME_SHOW
+      } = Class.ConfigConstants;
+      const SELECTOR_DATA_TOGGLE_SHOWN = `${SELECTOR_DATA_TOGGLE}.${CLASS_NAME_SHOW}`;
+      if (event.button === RIGHT_MOUSE_BUTTON || event.type === 'keyup' && event.key !== TAB_KEY) {
         return;
       }
       const openToggles = SelectorEngine.find(SELECTOR_DATA_TOGGLE_SHOWN);
       for (const toggle of openToggles) {
-        const context = Dropdown.getInstance(toggle);
+        const context = Class.getInstance(toggle);
         if (!context || context._config.autoClose === false) {
           continue;
         }
@@ -3827,7 +4127,7 @@
         }
 
         // Tab navigation through the dropdown menu or events from contained inputs shouldn't close the menu
-        if (context._menu.contains(event.target) && (event.type === 'keyup' && event.key === TAB_KEY$1 || /input|select|option|textarea|form/i.test(event.target.tagName))) {
+        if (context._menu.contains(event.target) && (event.type === 'keyup' && event.key === TAB_KEY || /input|select|option|textarea|form/i.test(event.target.tagName))) {
           continue;
         }
         const relatedTarget = {
@@ -3842,10 +4142,19 @@
     static dataApiKeydownHandler(event) {
       // If not an UP | DOWN | ESCAPE key => not a dropdown command
       // If input/textarea && if key is other than ESCAPE => not a dropdown command
-
+      // Class is injected via event._bsDropdownClass by the init() wrapper so that subclasses
+      // with custom ConfigConstants work correctly; fall back to Dropdown for plain usage.
+      const Class = event._bsDropdownClass || Dropdown;
+      const {
+        ESCAPE_KEY,
+        TAB_KEY,
+        ARROW_UP_KEY,
+        ARROW_DOWN_KEY,
+        SELECTOR_DATA_TOGGLE
+      } = Class.ConfigConstants;
       const isInput = /input|textarea/i.test(event.target.tagName);
-      const isEscapeEvent = event.key === ESCAPE_KEY$2;
-      const isUpOrDownEvent = [ARROW_UP_KEY$1, ARROW_DOWN_KEY$1].includes(event.key);
+      const isEscapeEvent = event.key === ESCAPE_KEY;
+      const isUpOrDownEvent = [ARROW_UP_KEY, ARROW_DOWN_KEY].includes(event.key);
       if (!isUpOrDownEvent && !isEscapeEvent) {
         return;
       }
@@ -3855,8 +4164,8 @@
       event.preventDefault();
 
       // TODO: v6 revert #37011 & change markup https://getbootstrap.com/docs/5.3/forms/input-group/
-      const getToggleButton = this.matches(SELECTOR_DATA_TOGGLE$3) ? this : SelectorEngine.prev(this, SELECTOR_DATA_TOGGLE$3)[0] || SelectorEngine.next(this, SELECTOR_DATA_TOGGLE$3)[0] || SelectorEngine.findOne(SELECTOR_DATA_TOGGLE$3, event.delegateTarget.parentNode);
-      const instance = Dropdown.getOrCreateInstance(getToggleButton);
+      const getToggleButton = this.matches(SELECTOR_DATA_TOGGLE) ? this : SelectorEngine.prev(this, SELECTOR_DATA_TOGGLE)[0] || SelectorEngine.next(this, SELECTOR_DATA_TOGGLE)[0] || SelectorEngine.findOne(SELECTOR_DATA_TOGGLE, event.delegateTarget.parentNode);
+      const instance = Class.getOrCreateInstance(getToggleButton);
       if (isUpOrDownEvent) {
         event.stopPropagation();
         instance.show();
@@ -3870,26 +4179,81 @@
         getToggleButton.focus();
       }
     }
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      const Class = this; // capture class for use in handler closures below
+      const {
+        SELECTOR_DATA_TOGGLE,
+        SELECTOR_MENU,
+        DATA_API_KEY
+      } = Class.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
+
+      // Store handler references for destroy().
+      // clearMenus is non-delegated: EventHandler calls fn.apply(document, [event])
+      // so `this` inside it would be document; use an arrow function to capture Class.
+      this._clearMenusHandler = event => Class.clearMenus(event);
+
+      // dataApiKeydownHandler is delegated: EventHandler calls fn.call(target, event)
+      // so `this` inside it is the matched DOM element — correct for DOM navigation.
+      // We inject Class via the event so the handler can read the right ConfigConstants.
+      this._keydownHandler = function (event) {
+        event._bsDropdownClass = Class;
+        Class.dataApiKeydownHandler.call(this, event);
+        delete event._bsDropdownClass;
+      };
+
+      // Toggle click: delegated, `this` is the matched toggle element.
+      this._toggleClickHandler = function (event) {
+        event.preventDefault();
+        Class.getOrCreateInstance(this).toggle();
+      };
+      EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
+      EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
+      EventHandler.on(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
+      EventHandler.on(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      defineJQueryPlugin(this);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      const {
+        SELECTOR_DATA_TOGGLE,
+        SELECTOR_MENU,
+        DATA_API_KEY
+      } = this.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
+      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
+      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
+      EventHandler.off(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
+      EventHandler.off(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      this._clearMenusHandler = null;
+      this._keydownHandler = null;
+      this._toggleClickHandler = null;
+      this._isInitialized = false;
+    }
   }
 
   /**
-   * Data API implementation
+   * Init on import (browser only)
    */
-
-  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE$3, Dropdown.dataApiKeydownHandler);
-  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, Dropdown.dataApiKeydownHandler);
-  EventHandler.on(document, EVENT_CLICK_DATA_API$3, Dropdown.clearMenus);
-  EventHandler.on(document, EVENT_KEYUP_DATA_API, Dropdown.clearMenus);
-  EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, function (event) {
-    event.preventDefault();
-    Dropdown.getOrCreateInstance(this).toggle();
-  });
-
-  /**
-   * jQuery
-   */
-
-  defineJQueryPlugin(Dropdown);
+  Dropdown._isInitialized = false;
+  Dropdown._clearMenusHandler = null;
+  Dropdown._keydownHandler = null;
+  Dropdown._toggleClickHandler = null;
+  if (typeof document !== 'undefined') {
+    Dropdown.init();
+  }
 
   /**
    * --------------------------------------------------------------------------
@@ -4283,6 +4647,37 @@
     static get NAME() {
       return NAME$7;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ESCAPE_KEY: ESCAPE_KEY$1,
+        EVENT_HIDE: EVENT_HIDE$4,
+        EVENT_HIDE_PREVENTED: EVENT_HIDE_PREVENTED$1,
+        EVENT_HIDDEN: EVENT_HIDDEN$4,
+        EVENT_SHOW: EVENT_SHOW$4,
+        EVENT_SHOWN: EVENT_SHOWN$4,
+        EVENT_RESIZE: EVENT_RESIZE$1,
+        EVENT_CLICK_DISMISS,
+        EVENT_MOUSEDOWN_DISMISS,
+        EVENT_KEYDOWN_DISMISS: EVENT_KEYDOWN_DISMISS$1,
+        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$2,
+        CLASS_NAME_OPEN,
+        CLASS_NAME_FADE: CLASS_NAME_FADE$3,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$4,
+        CLASS_NAME_STATIC,
+        OPEN_SELECTOR: OPEN_SELECTOR$1,
+        SELECTOR_DIALOG,
+        SELECTOR_MODAL_BODY,
+        SELECTOR_DATA_TOGGLE: SELECTOR_DATA_TOGGLE$2,
+        DATA_API_KEY: DATA_API_KEY$2
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     toggle(relatedTarget) {
@@ -4465,6 +4860,49 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._clickHandler = function (event) {
+        const target = SelectorEngine.getElementFromSelector(this);
+        if (['A', 'AREA'].includes(this.tagName)) {
+          event.preventDefault();
+        }
+        EventHandler.one(target, EVENT_SHOW$4, showEvent => {
+          if (showEvent.defaultPrevented) {
+            // only register focus restorer if modal will actually get shown
+            return;
+          }
+          EventHandler.one(target, EVENT_HIDDEN$4, () => {
+            if (isVisible(this)) {
+              this.focus();
+            }
+          });
+        });
+
+        // avoid conflict when clicking modal toggler while another one is open
+        const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR$1);
+        if (alreadyOpen) {
+          Modal.getInstance(alreadyOpen).hide();
+        }
+        const data = Modal.getOrCreateInstance(target);
+        data.toggle(this);
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API$2, SELECTOR_DATA_TOGGLE$2, this._clickHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(document, EVENT_CLICK_DATA_API$2, SELECTOR_DATA_TOGGLE$2, this._clickHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config, relatedTarget) {
       return this.each(function () {
         const data = Modal.getOrCreateInstance(this, config);
@@ -4482,32 +4920,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API$2, SELECTOR_DATA_TOGGLE$2, function (event) {
-    const target = SelectorEngine.getElementFromSelector(this);
-    if (['A', 'AREA'].includes(this.tagName)) {
-      event.preventDefault();
-    }
-    EventHandler.one(target, EVENT_SHOW$4, showEvent => {
-      if (showEvent.defaultPrevented) {
-        // only register focus restorer if modal will actually get shown
-        return;
-      }
-      EventHandler.one(target, EVENT_HIDDEN$4, () => {
-        if (isVisible(this)) {
-          this.focus();
-        }
-      });
-    });
-
-    // avoid conflict when clicking modal toggler while another one is open
-    const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR$1);
-    if (alreadyOpen) {
-      Modal.getInstance(alreadyOpen).hide();
-    }
-    const data = Modal.getOrCreateInstance(target);
-    data.toggle(this);
-  });
+  Modal._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Modal.init();
+  }
   enableDismissTrigger(Modal);
 
   /**
@@ -4581,6 +4997,34 @@
     }
     static get NAME() {
       return NAME$6;
+    }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ESCAPE_KEY,
+        EVENT_LOAD_DATA_API: EVENT_LOAD_DATA_API$2,
+        EVENT_SHOW: EVENT_SHOW$3,
+        EVENT_SHOWN: EVENT_SHOWN$3,
+        EVENT_HIDE: EVENT_HIDE$3,
+        EVENT_HIDE_PREVENTED,
+        EVENT_HIDDEN: EVENT_HIDDEN$3,
+        EVENT_RESIZE,
+        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$1,
+        EVENT_KEYDOWN_DISMISS,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$3,
+        CLASS_NAME_SHOWING: CLASS_NAME_SHOWING$1,
+        CLASS_NAME_HIDING,
+        CLASS_NAME_BACKDROP,
+        OPEN_SELECTOR,
+        SELECTOR_DATA_TOGGLE: SELECTOR_DATA_TOGGLE$1,
+        DATA_API_KEY: DATA_API_KEY$1
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
     }
 
     // Public
@@ -4686,6 +5130,63 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._clickHandler = function (event) {
+        const target = SelectorEngine.getElementFromSelector(this);
+        if (['A', 'AREA'].includes(this.tagName)) {
+          event.preventDefault();
+        }
+        if (isDisabled(this)) {
+          return;
+        }
+        EventHandler.one(target, EVENT_HIDDEN$3, () => {
+          // focus on trigger when it is closed
+          if (isVisible(this)) {
+            this.focus();
+          }
+        });
+
+        // avoid conflict when clicking a toggler of an offcanvas, while another is open
+        const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR);
+        if (alreadyOpen && alreadyOpen !== target) {
+          Offcanvas.getInstance(alreadyOpen).hide();
+        }
+        const data = Offcanvas.getOrCreateInstance(target);
+        data.toggle(this);
+      };
+      this._loadHandler = () => {
+        for (const selector of SelectorEngine.find(OPEN_SELECTOR)) {
+          Offcanvas.getOrCreateInstance(selector).show();
+        }
+      };
+      this._resizeHandler = () => {
+        for (const element of SelectorEngine.find('[aria-modal][class*=show][class*=offcanvas-]')) {
+          if (getComputedStyle(element).position !== 'fixed') {
+            Offcanvas.getOrCreateInstance(element).hide();
+          }
+        }
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API$1, SELECTOR_DATA_TOGGLE$1, this._clickHandler);
+      EventHandler.on(window, EVENT_LOAD_DATA_API$2, this._loadHandler);
+      EventHandler.on(window, EVENT_RESIZE, this._resizeHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(document, EVENT_CLICK_DATA_API$1, SELECTOR_DATA_TOGGLE$1, this._clickHandler);
+      EventHandler.off(window, EVENT_LOAD_DATA_API$2, this._loadHandler);
+      EventHandler.off(window, EVENT_RESIZE, this._resizeHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       return this.each(function () {
         const data = Offcanvas.getOrCreateInstance(this, config);
@@ -4703,42 +5204,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API$1, SELECTOR_DATA_TOGGLE$1, function (event) {
-    const target = SelectorEngine.getElementFromSelector(this);
-    if (['A', 'AREA'].includes(this.tagName)) {
-      event.preventDefault();
-    }
-    if (isDisabled(this)) {
-      return;
-    }
-    EventHandler.one(target, EVENT_HIDDEN$3, () => {
-      // focus on trigger when it is closed
-      if (isVisible(this)) {
-        this.focus();
-      }
-    });
-
-    // avoid conflict when clicking a toggler of an offcanvas, while another is open
-    const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR);
-    if (alreadyOpen && alreadyOpen !== target) {
-      Offcanvas.getInstance(alreadyOpen).hide();
-    }
-    const data = Offcanvas.getOrCreateInstance(target);
-    data.toggle(this);
-  });
-  EventHandler.on(window, EVENT_LOAD_DATA_API$2, () => {
-    for (const selector of SelectorEngine.find(OPEN_SELECTOR)) {
-      Offcanvas.getOrCreateInstance(selector).show();
-    }
-  });
-  EventHandler.on(window, EVENT_RESIZE, () => {
-    for (const element of SelectorEngine.find('[aria-modal][class*=show][class*=offcanvas-]')) {
-      if (getComputedStyle(element).position !== 'fixed') {
-        Offcanvas.getOrCreateInstance(element).hide();
-      }
-    }
-  });
+  Offcanvas._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Offcanvas.init();
+  }
   enableDismissTrigger(Offcanvas);
 
   /**
@@ -5649,6 +6118,31 @@
     static get NAME() {
       return NAME$2;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        CLASS_NAME_DROPDOWN_ITEM,
+        CLASS_NAME_ACTIVE: CLASS_NAME_ACTIVE$1,
+        SELECTOR_DATA_SPY,
+        SELECTOR_TARGET_LINKS,
+        SELECTOR_NAV_LIST_GROUP,
+        SELECTOR_NAV_LINKS,
+        SELECTOR_NAV_ITEMS,
+        SELECTOR_LIST_ITEMS,
+        SELECTOR_LINK_ITEMS,
+        SELECTOR_DROPDOWN,
+        SELECTOR_DROPDOWN_TOGGLE: SELECTOR_DROPDOWN_TOGGLE$1,
+        EVENT_ACTIVATE,
+        EVENT_CLICK,
+        EVENT_LOAD_DATA_API: EVENT_LOAD_DATA_API$1
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     refresh() {
@@ -5801,6 +6295,29 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._loadHandler = () => {
+        for (const spy of SelectorEngine.find(SELECTOR_DATA_SPY)) {
+          ScrollSpy.getOrCreateInstance(spy);
+        }
+      };
+      EventHandler.on(window, EVENT_LOAD_DATA_API$1, this._loadHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(window, EVENT_LOAD_DATA_API$1, this._loadHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       return this.each(function () {
         const data = ScrollSpy.getOrCreateInstance(this, config);
@@ -5818,12 +6335,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(window, EVENT_LOAD_DATA_API$1, () => {
-    for (const spy of SelectorEngine.find(SELECTOR_DATA_SPY)) {
-      ScrollSpy.getOrCreateInstance(spy);
-    }
-  });
+  ScrollSpy._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    ScrollSpy.init();
+  }
 
   /**
    * jQuery
@@ -5895,6 +6410,43 @@
     // Getters
     static get NAME() {
       return NAME$1;
+    }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ARROW_LEFT_KEY,
+        ARROW_RIGHT_KEY,
+        ARROW_UP_KEY,
+        ARROW_DOWN_KEY,
+        HOME_KEY,
+        END_KEY,
+        CLASS_NAME_ACTIVE,
+        CLASS_NAME_FADE: CLASS_NAME_FADE$1,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$1,
+        CLASS_DROPDOWN,
+        SELECTOR_DROPDOWN_TOGGLE,
+        SELECTOR_DROPDOWN_MENU,
+        NOT_SELECTOR_DROPDOWN_TOGGLE,
+        SELECTOR_TAB_PANEL,
+        SELECTOR_OUTER,
+        SELECTOR_INNER,
+        SELECTOR_DATA_TOGGLE,
+        SELECTOR_INNER_ELEM,
+        SELECTOR_DATA_TOGGLE_ACTIVE,
+        EVENT_HIDE: EVENT_HIDE$1,
+        EVENT_HIDDEN: EVENT_HIDDEN$1,
+        EVENT_SHOW: EVENT_SHOW$1,
+        EVENT_SHOWN: EVENT_SHOWN$1,
+        EVENT_CLICK_DATA_API,
+        EVENT_KEYDOWN,
+        EVENT_LOAD_DATA_API
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
     }
 
     // Public
@@ -6059,6 +6611,40 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._clickHandler = function (event) {
+        if (['A', 'AREA'].includes(this.tagName)) {
+          event.preventDefault();
+        }
+        if (isDisabled(this)) {
+          return;
+        }
+        Tab.getOrCreateInstance(this).show();
+      };
+      this._loadHandler = () => {
+        for (const element of SelectorEngine.find(SELECTOR_DATA_TOGGLE_ACTIVE)) {
+          Tab.getOrCreateInstance(element);
+        }
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       return this.each(function () {
         const data = Tab.getOrCreateInstance(this);
@@ -6076,25 +6662,11 @@
   /**
    * Data API implementation
    */
+  Tab._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Tab.init();
+  }
 
-  EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, function (event) {
-    if (['A', 'AREA'].includes(this.tagName)) {
-      event.preventDefault();
-    }
-    if (isDisabled(this)) {
-      return;
-    }
-    Tab.getOrCreateInstance(this).show();
-  });
-
-  /**
-   * Initialize on focus
-   */
-  EventHandler.on(window, EVENT_LOAD_DATA_API, () => {
-    for (const element of SelectorEngine.find(SELECTOR_DATA_TOGGLE_ACTIVE)) {
-      Tab.getOrCreateInstance(element);
-    }
-  });
   /**
    * jQuery
    */

@@ -187,6 +187,10 @@ const getjQuery = () => {
 const DOMContentLoadedCallbacks = []
 
 const onDOMContentLoaded = callback => {
+  if (typeof document === 'undefined') {
+    return
+  }
+
   if (document.readyState === 'loading') {
     // add listener on the first call when the document is in loading state
     if (!DOMContentLoadedCallbacks.length) {
@@ -203,7 +207,7 @@ const onDOMContentLoaded = callback => {
   }
 }
 
-const isRTL = () => document.documentElement.dir === 'rtl'
+const isRTL = () => typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
 
 const defineJQueryPlugin = plugin => {
   onDOMContentLoaded(() => {

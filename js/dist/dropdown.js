@@ -1,6 +1,6 @@
 /*!
   * Bootstrap dropdown.js v5.3.8 (https://getbootstrap.com/)
-  * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2026 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
@@ -41,42 +41,6 @@
    */
 
   const NAME = 'dropdown';
-  const DATA_KEY = 'bs.dropdown';
-  const EVENT_KEY = `.${DATA_KEY}`;
-  const DATA_API_KEY = '.data-api';
-  const ESCAPE_KEY = 'Escape';
-  const TAB_KEY = 'Tab';
-  const ARROW_UP_KEY = 'ArrowUp';
-  const ARROW_DOWN_KEY = 'ArrowDown';
-  const RIGHT_MOUSE_BUTTON = 2; // MouseEvent.button value for the secondary button, usually the right button
-
-  const EVENT_HIDE = `hide${EVENT_KEY}`;
-  const EVENT_HIDDEN = `hidden${EVENT_KEY}`;
-  const EVENT_SHOW = `show${EVENT_KEY}`;
-  const EVENT_SHOWN = `shown${EVENT_KEY}`;
-  const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`;
-  const EVENT_KEYDOWN_DATA_API = `keydown${EVENT_KEY}${DATA_API_KEY}`;
-  const EVENT_KEYUP_DATA_API = `keyup${EVENT_KEY}${DATA_API_KEY}`;
-  const CLASS_NAME_SHOW = 'show';
-  const CLASS_NAME_DROPUP = 'dropup';
-  const CLASS_NAME_DROPEND = 'dropend';
-  const CLASS_NAME_DROPSTART = 'dropstart';
-  const CLASS_NAME_DROPUP_CENTER = 'dropup-center';
-  const CLASS_NAME_DROPDOWN_CENTER = 'dropdown-center';
-  const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="dropdown"]:not(.disabled):not(:disabled)';
-  const SELECTOR_DATA_TOGGLE_SHOWN = `${SELECTOR_DATA_TOGGLE}.${CLASS_NAME_SHOW}`;
-  const SELECTOR_MENU = '.dropdown-menu';
-  const SELECTOR_NAVBAR = '.navbar';
-  const SELECTOR_NAVBAR_NAV = '.navbar-nav';
-  const SELECTOR_VISIBLE_ITEMS = '.dropdown-menu .dropdown-item:not(.disabled):not(:disabled)';
-  const PLACEMENT_TOP = index_js.isRTL() ? 'top-end' : 'top-start';
-  const PLACEMENT_TOPEND = index_js.isRTL() ? 'top-start' : 'top-end';
-  const PLACEMENT_BOTTOM = index_js.isRTL() ? 'bottom-end' : 'bottom-start';
-  const PLACEMENT_BOTTOMEND = index_js.isRTL() ? 'bottom-start' : 'bottom-end';
-  const PLACEMENT_RIGHT = index_js.isRTL() ? 'left-start' : 'right-start';
-  const PLACEMENT_LEFT = index_js.isRTL() ? 'right-start' : 'left-start';
-  const PLACEMENT_TOPCENTER = 'top';
-  const PLACEMENT_BOTTOMCENTER = 'bottom';
   const Default = {
     autoClose: true,
     boundary: 'clippingParents',
@@ -104,6 +68,9 @@
       this._popper = null;
       this._parent = this._element.parentNode; // dropdown wrapper
       // TODO: v6 revert #37011 & change markup https://getbootstrap.com/docs/5.3/forms/input-group/
+      const {
+        SELECTOR_MENU
+      } = this.constructor.ConfigConstants;
       this._menu = SelectorEngine.next(this._element, SELECTOR_MENU)[0] || SelectorEngine.prev(this._element, SELECTOR_MENU)[0] || SelectorEngine.findOne(SELECTOR_MENU, this._parent);
       this._inNavbar = this._detectNavbar();
     }
@@ -118,6 +85,42 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ESCAPE_KEY: 'Escape',
+        TAB_KEY: 'Tab',
+        ARROW_UP_KEY: 'ArrowUp',
+        ARROW_DOWN_KEY: 'ArrowDown',
+        RIGHT_MOUSE_BUTTON: 2,
+        CLASS_NAME_SHOW: 'show',
+        CLASS_NAME_DROPUP: 'dropup',
+        CLASS_NAME_DROPEND: 'dropend',
+        CLASS_NAME_DROPSTART: 'dropstart',
+        CLASS_NAME_DROPUP_CENTER: 'dropup-center',
+        CLASS_NAME_DROPDOWN_CENTER: 'dropdown-center',
+        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="dropdown"]:not(.disabled):not(:disabled)',
+        SELECTOR_MENU: '.dropdown-menu',
+        SELECTOR_NAVBAR: '.navbar',
+        SELECTOR_NAVBAR_NAV: '.navbar-nav',
+        SELECTOR_VISIBLE_ITEMS: '.dropdown-menu .dropdown-item:not(.disabled):not(:disabled)',
+        PLACEMENT_TOP: index_js.isRTL() ? 'top-end' : 'top-start',
+        PLACEMENT_TOPEND: index_js.isRTL() ? 'top-start' : 'top-end',
+        PLACEMENT_BOTTOM: index_js.isRTL() ? 'bottom-end' : 'bottom-start',
+        PLACEMENT_BOTTOMEND: index_js.isRTL() ? 'bottom-start' : 'bottom-end',
+        PLACEMENT_RIGHT: index_js.isRTL() ? 'left-start' : 'right-start',
+        PLACEMENT_LEFT: index_js.isRTL() ? 'right-start' : 'left-start',
+        PLACEMENT_TOPCENTER: 'top',
+        PLACEMENT_BOTTOMCENTER: 'bottom',
+        DATA_API_KEY: '.data-api'
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     toggle() {
@@ -127,6 +130,12 @@
       if (index_js.isDisabled(this._element) || this._isShown()) {
         return;
       }
+      const {
+        CLASS_NAME_SHOW,
+        SELECTOR_NAVBAR_NAV
+      } = this.constructor.ConfigConstants;
+      const EVENT_SHOW = `show${this.constructor.EVENT_KEY}`;
+      const EVENT_SHOWN = `shown${this.constructor.EVENT_KEY}`;
       const relatedTarget = {
         relatedTarget: this._element
       };
@@ -175,6 +184,11 @@
 
     // Private
     _completeHide(relatedTarget) {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
+      const EVENT_HIDE = `hide${this.constructor.EVENT_KEY}`;
+      const EVENT_HIDDEN = `hidden${this.constructor.EVENT_KEY}`;
       const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE, relatedTarget);
       if (hideEvent.defaultPrevented) {
         return;
@@ -220,9 +234,27 @@
       this._popper = Popper__namespace.createPopper(referenceElement, this._menu, popperConfig);
     }
     _isShown() {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       return this._menu.classList.contains(CLASS_NAME_SHOW);
     }
     _getPlacement() {
+      const {
+        CLASS_NAME_DROPEND,
+        CLASS_NAME_DROPSTART,
+        CLASS_NAME_DROPUP_CENTER,
+        CLASS_NAME_DROPDOWN_CENTER,
+        CLASS_NAME_DROPUP,
+        PLACEMENT_RIGHT,
+        PLACEMENT_LEFT,
+        PLACEMENT_TOPCENTER,
+        PLACEMENT_BOTTOMCENTER,
+        PLACEMENT_TOPEND,
+        PLACEMENT_TOP,
+        PLACEMENT_BOTTOMEND,
+        PLACEMENT_BOTTOM
+      } = this.constructor.ConfigConstants;
       const parentDropdown = this._parent;
       if (parentDropdown.classList.contains(CLASS_NAME_DROPEND)) {
         return PLACEMENT_RIGHT;
@@ -245,6 +277,9 @@
       return isEnd ? PLACEMENT_BOTTOMEND : PLACEMENT_BOTTOM;
     }
     _detectNavbar() {
+      const {
+        SELECTOR_NAVBAR
+      } = this.constructor.ConfigConstants;
       return this._element.closest(SELECTOR_NAVBAR) !== null;
     }
     _getOffset() {
@@ -292,6 +327,10 @@
       key,
       target
     }) {
+      const {
+        ARROW_DOWN_KEY,
+        SELECTOR_VISIBLE_ITEMS
+      } = this.constructor.ConfigConstants;
       const items = SelectorEngine.find(SELECTOR_VISIBLE_ITEMS, this._menu).filter(element => index_js.isVisible(element));
       if (!items.length) {
         return;
@@ -316,12 +355,20 @@
       });
     }
     static clearMenus(event) {
+      const Class = this;
+      const {
+        RIGHT_MOUSE_BUTTON,
+        TAB_KEY,
+        SELECTOR_DATA_TOGGLE,
+        CLASS_NAME_SHOW
+      } = Class.ConfigConstants;
+      const SELECTOR_DATA_TOGGLE_SHOWN = `${SELECTOR_DATA_TOGGLE}.${CLASS_NAME_SHOW}`;
       if (event.button === RIGHT_MOUSE_BUTTON || event.type === 'keyup' && event.key !== TAB_KEY) {
         return;
       }
       const openToggles = SelectorEngine.find(SELECTOR_DATA_TOGGLE_SHOWN);
       for (const toggle of openToggles) {
-        const context = Dropdown.getInstance(toggle);
+        const context = Class.getInstance(toggle);
         if (!context || context._config.autoClose === false) {
           continue;
         }
@@ -347,7 +394,16 @@
     static dataApiKeydownHandler(event) {
       // If not an UP | DOWN | ESCAPE key => not a dropdown command
       // If input/textarea && if key is other than ESCAPE => not a dropdown command
-
+      // Class is injected via event._bsDropdownClass by the init() wrapper so that subclasses
+      // with custom ConfigConstants work correctly; fall back to Dropdown for plain usage.
+      const Class = event._bsDropdownClass || Dropdown;
+      const {
+        ESCAPE_KEY,
+        TAB_KEY,
+        ARROW_UP_KEY,
+        ARROW_DOWN_KEY,
+        SELECTOR_DATA_TOGGLE
+      } = Class.ConfigConstants;
       const isInput = /input|textarea/i.test(event.target.tagName);
       const isEscapeEvent = event.key === ESCAPE_KEY;
       const isUpOrDownEvent = [ARROW_UP_KEY, ARROW_DOWN_KEY].includes(event.key);
@@ -361,7 +417,7 @@
 
       // TODO: v6 revert #37011 & change markup https://getbootstrap.com/docs/5.3/forms/input-group/
       const getToggleButton = this.matches(SELECTOR_DATA_TOGGLE) ? this : SelectorEngine.prev(this, SELECTOR_DATA_TOGGLE)[0] || SelectorEngine.next(this, SELECTOR_DATA_TOGGLE)[0] || SelectorEngine.findOne(SELECTOR_DATA_TOGGLE, event.delegateTarget.parentNode);
-      const instance = Dropdown.getOrCreateInstance(getToggleButton);
+      const instance = Class.getOrCreateInstance(getToggleButton);
       if (isUpOrDownEvent) {
         event.stopPropagation();
         instance.show();
@@ -375,26 +431,81 @@
         getToggleButton.focus();
       }
     }
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      const Class = this; // capture class for use in handler closures below
+      const {
+        SELECTOR_DATA_TOGGLE,
+        SELECTOR_MENU,
+        DATA_API_KEY
+      } = Class.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
+
+      // Store handler references for destroy().
+      // clearMenus is non-delegated: EventHandler calls fn.apply(document, [event])
+      // so `this` inside it would be document; use an arrow function to capture Class.
+      this._clearMenusHandler = event => Class.clearMenus(event);
+
+      // dataApiKeydownHandler is delegated: EventHandler calls fn.call(target, event)
+      // so `this` inside it is the matched DOM element — correct for DOM navigation.
+      // We inject Class via the event so the handler can read the right ConfigConstants.
+      this._keydownHandler = function (event) {
+        event._bsDropdownClass = Class;
+        Class.dataApiKeydownHandler.call(this, event);
+        delete event._bsDropdownClass;
+      };
+
+      // Toggle click: delegated, `this` is the matched toggle element.
+      this._toggleClickHandler = function (event) {
+        event.preventDefault();
+        Class.getOrCreateInstance(this).toggle();
+      };
+      EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
+      EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
+      EventHandler.on(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
+      EventHandler.on(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      index_js.defineJQueryPlugin(this);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      const {
+        SELECTOR_DATA_TOGGLE,
+        SELECTOR_MENU,
+        DATA_API_KEY
+      } = this.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
+      const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
+      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
+      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
+      EventHandler.off(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
+      EventHandler.off(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      this._clearMenusHandler = null;
+      this._keydownHandler = null;
+      this._toggleClickHandler = null;
+      this._isInitialized = false;
+    }
   }
 
   /**
-   * Data API implementation
+   * Init on import (browser only)
    */
-
-  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, Dropdown.dataApiKeydownHandler);
-  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, Dropdown.dataApiKeydownHandler);
-  EventHandler.on(document, EVENT_CLICK_DATA_API, Dropdown.clearMenus);
-  EventHandler.on(document, EVENT_KEYUP_DATA_API, Dropdown.clearMenus);
-  EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, function (event) {
-    event.preventDefault();
-    Dropdown.getOrCreateInstance(this).toggle();
-  });
-
-  /**
-   * jQuery
-   */
-
-  index_js.defineJQueryPlugin(Dropdown);
+  Dropdown._isInitialized = false;
+  Dropdown._clearMenusHandler = null;
+  Dropdown._keydownHandler = null;
+  Dropdown._toggleClickHandler = null;
+  if (typeof document !== 'undefined') {
+    Dropdown.init();
+  }
 
   return Dropdown;
 

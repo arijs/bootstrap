@@ -1,6 +1,6 @@
 /*!
   * Bootstrap scrollspy.js v5.3.8 (https://getbootstrap.com/)
-  * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2026 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
@@ -86,6 +86,31 @@
     }
     static get NAME() {
       return NAME;
+    }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        CLASS_NAME_DROPDOWN_ITEM,
+        CLASS_NAME_ACTIVE,
+        SELECTOR_DATA_SPY,
+        SELECTOR_TARGET_LINKS,
+        SELECTOR_NAV_LIST_GROUP,
+        SELECTOR_NAV_LINKS,
+        SELECTOR_NAV_ITEMS,
+        SELECTOR_LIST_ITEMS,
+        SELECTOR_LINK_ITEMS,
+        SELECTOR_DROPDOWN,
+        SELECTOR_DROPDOWN_TOGGLE,
+        EVENT_ACTIVATE,
+        EVENT_CLICK,
+        EVENT_LOAD_DATA_API
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
     }
 
     // Public
@@ -239,6 +264,29 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._loadHandler = () => {
+        for (const spy of SelectorEngine.find(SELECTOR_DATA_SPY)) {
+          ScrollSpy.getOrCreateInstance(spy);
+        }
+      };
+      EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       return this.each(function () {
         const data = ScrollSpy.getOrCreateInstance(this, config);
@@ -256,12 +304,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(window, EVENT_LOAD_DATA_API, () => {
-    for (const spy of SelectorEngine.find(SELECTOR_DATA_SPY)) {
-      ScrollSpy.getOrCreateInstance(spy);
-    }
-  });
+  ScrollSpy._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    ScrollSpy.init();
+  }
 
   /**
    * jQuery

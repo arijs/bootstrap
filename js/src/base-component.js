@@ -81,6 +81,84 @@ class BaseComponent extends Config {
   static eventName(name) {
     return `${name}${this.EVENT_KEY}`
   }
+
+  // Config constants override support
+  static getConfigConstants(overrides = {}) {
+    return overrides
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
+  static extendDefaultConfig(overrides = {}) {
+    const parentClass = this
+
+    // Helper to split flat overrides into Default, DefaultType, and ConfigConstants
+    const splitOverrides = (flat = {}) => {
+      const parentDefault = parentClass.Default || {}
+      const parentDefaultType = parentClass.DefaultType || {}
+      const parentConfigConstants = parentClass.ConfigConstants || {}
+
+      const newDefault = {}
+      const newDefaultType = {}
+      const newConfigConstants = {}
+
+      // Merge all parent values first
+      Object.assign(newDefault, parentDefault)
+      Object.assign(newDefaultType, parentDefaultType)
+      Object.assign(newConfigConstants, parentConfigConstants)
+
+      // Classify incoming overrides
+      for (const [key, value] of Object.entries(flat)) {
+        // If key exists in parent Default or DefaultType, it's an instance option
+        if (key in parentDefault || key in parentDefaultType) {
+          newDefault[key] = value
+          // Infer type if not already in DefaultType
+          if (!(key in parentDefaultType)) {
+            const valueType = Array.isArray(value) ? 'array' : typeof value
+            if (valueType === 'object') {
+              newDefaultType[key] = '(null|object|function)'
+            } else if (valueType === 'boolean') {
+              newDefaultType[key] = '(boolean|string)'
+            } else if (valueType === 'string') {
+              newDefaultType[key] = 'string'
+            } else {
+              newDefaultType[key] = valueType
+            }
+          }
+        } else {
+          // Otherwise treat as structural constant
+          newConfigConstants[key] = value
+        }
+      }
+
+      return { newDefault, newDefaultType, newConfigConstants }
+    }
+
+    const { newDefault, newDefaultType, newConfigConstants } = splitOverrides(overrides)
+
+    // Create a new subclass
+    return class extends parentClass {
+      static get Default() {
+        return newDefault
+      }
+
+      static get DefaultType() {
+        return newDefaultType
+      }
+
+      static get ConfigConstants() {
+        return newConfigConstants
+      }
+
+      static getConfigConstants(furtherOverrides = {}) {
+        // Support chaining: if someone calls getConfigConstants on the returned subclass
+        const merged = { ...newConfigConstants, ...furtherOverrides }
+        return merged
+      }
+    }
+  }
 }
 
 export default BaseComponent

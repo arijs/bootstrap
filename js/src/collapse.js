@@ -99,6 +99,32 @@ class Collapse extends BaseComponent {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      EVENT_SHOW,
+      EVENT_SHOWN,
+      EVENT_HIDE,
+      EVENT_HIDDEN,
+      EVENT_CLICK_DATA_API,
+      CLASS_NAME_SHOW,
+      CLASS_NAME_COLLAPSE,
+      CLASS_NAME_COLLAPSING,
+      CLASS_NAME_COLLAPSED,
+      CLASS_NAME_DEEPER_CHILDREN,
+      CLASS_NAME_HORIZONTAL,
+      WIDTH,
+      HEIGHT,
+      SELECTOR_ACTIVES,
+      SELECTOR_DATA_TOGGLE,
+      DATA_API_KEY
+    }
+    return { ...defaults, ...overrides }
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
   // Public
   toggle() {
     if (this._isShown()) {
@@ -253,6 +279,41 @@ class Collapse extends BaseComponent {
   }
 
   // Static
+  static _isInitialized = false
+
+  static init() {
+    if (this._isInitialized) {
+      return
+    }
+
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    this._clickHandler = function (event) {
+      // preventDefault only for <a> elements (which change the URL) not inside the collapsible element
+      if (event.target.tagName === 'A' || (event.delegateTarget && event.delegateTarget.tagName === 'A')) {
+        event.preventDefault()
+      }
+
+      for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
+        Collapse.getOrCreateInstance(element, { toggle: false }).toggle()
+      }
+    }
+
+    EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+    this._isInitialized = true
+  }
+
+  static destroy() {
+    if (!this._isInitialized) {
+      return
+    }
+
+    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+    this._isInitialized = false
+  }
+
   static jQueryInterface(config) {
     const _config = {}
     if (typeof config === 'string' && /show|hide/.test(config)) {
@@ -277,16 +338,9 @@ class Collapse extends BaseComponent {
  * Data API implementation
  */
 
-EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, function (event) {
-  // preventDefault only for <a> elements (which change the URL) not inside the collapsible element
-  if (event.target.tagName === 'A' || (event.delegateTarget && event.delegateTarget.tagName === 'A')) {
-    event.preventDefault()
-  }
-
-  for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-    Collapse.getOrCreateInstance(element, { toggle: false }).toggle()
-  }
-})
+if (typeof document !== 'undefined') {
+  Collapse.init()
+}
 
 /**
  * jQuery

@@ -33,8 +33,31 @@ class Alert extends BaseComponent {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      EVENT_CLOSE,
+      EVENT_CLOSED,
+      CLASS_NAME_FADE,
+      CLASS_NAME_SHOW
+    }
+    return { ...defaults, ...overrides }
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
+  static init() {
+    // Alert has no module-level listeners; all are handled by enableDismissTrigger
+  }
+
+  static destroy() {
+    // Alert has no module-level listeners; all are handled by enableDismissTrigger
+  }
+
   // Public
   close() {
+    const { EVENT_CLOSE, CLASS_NAME_SHOW, CLASS_NAME_FADE, EVENT_CLOSED } = this.constructor.ConfigConstants
     const closeEvent = EventHandler.trigger(this._element, EVENT_CLOSE)
 
     if (closeEvent.defaultPrevented) {
@@ -44,13 +67,13 @@ class Alert extends BaseComponent {
     this._element.classList.remove(CLASS_NAME_SHOW)
 
     const isAnimated = this._element.classList.contains(CLASS_NAME_FADE)
-    this._queueCallback(() => this._destroyElement(), this._element, isAnimated)
+    this._queueCallback(() => this._destroyElement(EVENT_CLOSED), this._element, isAnimated)
   }
 
   // Private
-  _destroyElement() {
+  _destroyElement(eventClosed) {
     this._element.remove()
-    EventHandler.trigger(this._element, EVENT_CLOSED)
+    EventHandler.trigger(this._element, eventClosed)
     this.dispose()
   }
 

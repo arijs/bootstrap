@@ -1,6 +1,6 @@
 /*!
   * Bootstrap index.js v5.3.8 (https://getbootstrap.com/)
-  * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2026 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
@@ -170,6 +170,9 @@
   };
   const DOMContentLoadedCallbacks = [];
   const onDOMContentLoaded = callback => {
+    if (typeof document === 'undefined') {
+      return;
+    }
     if (document.readyState === 'loading') {
       // add listener on the first call when the document is in loading state
       if (!DOMContentLoadedCallbacks.length) {
@@ -184,7 +187,7 @@
       callback();
     }
   };
-  const isRTL = () => document.documentElement.dir === 'rtl';
+  const isRTL = () => typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
   const defineJQueryPlugin = plugin => {
     onDOMContentLoaded(() => {
       const $ = getjQuery();

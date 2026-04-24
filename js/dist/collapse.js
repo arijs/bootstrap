@@ -1,6 +1,6 @@
 /*!
   * Bootstrap collapse.js v5.3.8 (https://getbootstrap.com/)
-  * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2026 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
@@ -84,6 +84,33 @@
     }
     static get NAME() {
       return NAME;
+    }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        EVENT_SHOW,
+        EVENT_SHOWN,
+        EVENT_HIDE,
+        EVENT_HIDDEN,
+        EVENT_CLICK_DATA_API,
+        CLASS_NAME_SHOW,
+        CLASS_NAME_COLLAPSE,
+        CLASS_NAME_COLLAPSING,
+        CLASS_NAME_COLLAPSED,
+        CLASS_NAME_DEEPER_CHILDREN,
+        CLASS_NAME_HORIZONTAL,
+        WIDTH,
+        HEIGHT,
+        SELECTOR_ACTIVES,
+        SELECTOR_DATA_TOGGLE,
+        DATA_API_KEY
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
     }
 
     // Public
@@ -204,6 +231,35 @@
     }
 
     // Static
+
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      if (typeof document === 'undefined') {
+        return;
+      }
+      this._clickHandler = function (event) {
+        // preventDefault only for <a> elements (which change the URL) not inside the collapsible element
+        if (event.target.tagName === 'A' || event.delegateTarget && event.delegateTarget.tagName === 'A') {
+          event.preventDefault();
+        }
+        for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
+          Collapse.getOrCreateInstance(element, {
+            toggle: false
+          }).toggle();
+        }
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._isInitialized = false;
+    }
     static jQueryInterface(config) {
       const _config = {};
       if (typeof config === 'string' && /show|hide/.test(config)) {
@@ -224,18 +280,10 @@
   /**
    * Data API implementation
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, function (event) {
-    // preventDefault only for <a> elements (which change the URL) not inside the collapsible element
-    if (event.target.tagName === 'A' || event.delegateTarget && event.delegateTarget.tagName === 'A') {
-      event.preventDefault();
-    }
-    for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-      Collapse.getOrCreateInstance(element, {
-        toggle: false
-      }).toggle();
-    }
-  });
+  Collapse._isInitialized = false;
+  if (typeof document !== 'undefined') {
+    Collapse.init();
+  }
 
   /**
    * jQuery

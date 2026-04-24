@@ -88,6 +88,30 @@ class ScrollSpy extends BaseComponent {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      CLASS_NAME_DROPDOWN_ITEM,
+      CLASS_NAME_ACTIVE,
+      SELECTOR_DATA_SPY,
+      SELECTOR_TARGET_LINKS,
+      SELECTOR_NAV_LIST_GROUP,
+      SELECTOR_NAV_LINKS,
+      SELECTOR_NAV_ITEMS,
+      SELECTOR_LIST_ITEMS,
+      SELECTOR_LINK_ITEMS,
+      SELECTOR_DROPDOWN,
+      SELECTOR_DROPDOWN_TOGGLE,
+      EVENT_ACTIVATE,
+      EVENT_CLICK,
+      EVENT_LOAD_DATA_API
+    }
+    return { ...defaults, ...overrides }
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
   // Public
   refresh() {
     this._initializeTargetsAndObservables()
@@ -260,6 +284,36 @@ class ScrollSpy extends BaseComponent {
   }
 
   // Static
+  static _isInitialized = false
+
+  static init() {
+    if (this._isInitialized) {
+      return
+    }
+
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    this._loadHandler = () => {
+      for (const spy of SelectorEngine.find(SELECTOR_DATA_SPY)) {
+        ScrollSpy.getOrCreateInstance(spy)
+      }
+    }
+
+    EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler)
+    this._isInitialized = true
+  }
+
+  static destroy() {
+    if (!this._isInitialized) {
+      return
+    }
+
+    EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler)
+    this._isInitialized = false
+  }
+
   static jQueryInterface(config) {
     return this.each(function () {
       const data = ScrollSpy.getOrCreateInstance(this, config)
@@ -281,11 +335,9 @@ class ScrollSpy extends BaseComponent {
  * Data API implementation
  */
 
-EventHandler.on(window, EVENT_LOAD_DATA_API, () => {
-  for (const spy of SelectorEngine.find(SELECTOR_DATA_SPY)) {
-    ScrollSpy.getOrCreateInstance(spy)
-  }
-})
+if (typeof document !== 'undefined') {
+  ScrollSpy.init()
+}
 
 /**
  * jQuery

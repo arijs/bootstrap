@@ -1,6 +1,6 @@
 /*!
   * Bootstrap button.js v5.3.8 (https://getbootstrap.com/)
-  * Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2026 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
@@ -22,12 +22,6 @@
    */
 
   const NAME = 'button';
-  const DATA_KEY = 'bs.button';
-  const EVENT_KEY = `.${DATA_KEY}`;
-  const DATA_API_KEY = '.data-api';
-  const CLASS_NAME_ACTIVE = 'active';
-  const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="button"]';
-  const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`;
 
   /**
    * Class definition
@@ -38,10 +32,26 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        CLASS_NAME_ACTIVE: 'active',
+        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="button"]',
+        DATA_API_KEY: '.data-api'
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     toggle() {
-      // Toggle class and sync the `aria-pressed` attribute with the return value of the `.toggle()` method
+      const {
+        CLASS_NAME_ACTIVE
+      } = this.constructor.ConfigConstants;
       this._element.setAttribute('aria-pressed', this._element.classList.toggle(CLASS_NAME_ACTIVE));
     }
 
@@ -54,24 +64,48 @@
         }
       });
     }
+    static init() {
+      if (this._isInitialized) {
+        return;
+      }
+      const {
+        SELECTOR_DATA_TOGGLE,
+        DATA_API_KEY
+      } = this.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      this._clickHandler = event => {
+        event.preventDefault();
+        const button = event.target.closest(SELECTOR_DATA_TOGGLE);
+        const data = this.getOrCreateInstance(button);
+        data.toggle();
+      };
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      index_js.defineJQueryPlugin(this);
+      this._isInitialized = true;
+    }
+    static destroy() {
+      if (!this._isInitialized) {
+        return;
+      }
+      const {
+        SELECTOR_DATA_TOGGLE,
+        DATA_API_KEY
+      } = this.ConfigConstants;
+      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._clickHandler = null;
+      this._isInitialized = false;
+    }
   }
 
   /**
-   * Data API implementation
+   * Init on import (browser only)
    */
-
-  EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, event => {
-    event.preventDefault();
-    const button = event.target.closest(SELECTOR_DATA_TOGGLE);
-    const data = Button.getOrCreateInstance(button);
-    data.toggle();
-  });
-
-  /**
-   * jQuery
-   */
-
-  index_js.defineJQueryPlugin(Button);
+  Button._isInitialized = false;
+  Button._clickHandler = null;
+  if (typeof document !== 'undefined') {
+    Button.init();
+  }
 
   return Button;
 

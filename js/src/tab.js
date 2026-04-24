@@ -76,6 +76,42 @@ class Tab extends BaseComponent {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      ARROW_LEFT_KEY,
+      ARROW_RIGHT_KEY,
+      ARROW_UP_KEY,
+      ARROW_DOWN_KEY,
+      HOME_KEY,
+      END_KEY,
+      CLASS_NAME_ACTIVE,
+      CLASS_NAME_FADE,
+      CLASS_NAME_SHOW,
+      CLASS_DROPDOWN,
+      SELECTOR_DROPDOWN_TOGGLE,
+      SELECTOR_DROPDOWN_MENU,
+      NOT_SELECTOR_DROPDOWN_TOGGLE,
+      SELECTOR_TAB_PANEL,
+      SELECTOR_OUTER,
+      SELECTOR_INNER,
+      SELECTOR_DATA_TOGGLE,
+      SELECTOR_INNER_ELEM,
+      SELECTOR_DATA_TOGGLE_ACTIVE,
+      EVENT_HIDE,
+      EVENT_HIDDEN,
+      EVENT_SHOW,
+      EVENT_SHOWN,
+      EVENT_CLICK_DATA_API,
+      EVENT_KEYDOWN,
+      EVENT_LOAD_DATA_API
+    }
+    return { ...defaults, ...overrides }
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
   // Public
   show() { // Shows this elem and deactivate the active sibling if exists
     const innerElem = this._element
@@ -265,6 +301,50 @@ class Tab extends BaseComponent {
   }
 
   // Static
+  static _isInitialized = false
+
+  static init() {
+    if (this._isInitialized) {
+      return
+    }
+
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    this._clickHandler = function (event) {
+      if (['A', 'AREA'].includes(this.tagName)) {
+        event.preventDefault()
+      }
+
+      if (isDisabled(this)) {
+        return
+      }
+
+      Tab.getOrCreateInstance(this).show()
+    }
+
+    this._loadHandler = () => {
+      for (const element of SelectorEngine.find(SELECTOR_DATA_TOGGLE_ACTIVE)) {
+        Tab.getOrCreateInstance(element)
+      }
+    }
+
+    EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+    EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler)
+    this._isInitialized = true
+  }
+
+  static destroy() {
+    if (!this._isInitialized) {
+      return
+    }
+
+    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+    EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler)
+    this._isInitialized = false
+  }
+
   static jQueryInterface(config) {
     return this.each(function () {
       const data = Tab.getOrCreateInstance(this)
@@ -286,26 +366,10 @@ class Tab extends BaseComponent {
  * Data API implementation
  */
 
-EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, function (event) {
-  if (['A', 'AREA'].includes(this.tagName)) {
-    event.preventDefault()
-  }
+if (typeof document !== 'undefined') {
+  Tab.init()
+}
 
-  if (isDisabled(this)) {
-    return
-  }
-
-  Tab.getOrCreateInstance(this).show()
-})
-
-/**
- * Initialize on focus
- */
-EventHandler.on(window, EVENT_LOAD_DATA_API, () => {
-  for (const element of SelectorEngine.find(SELECTOR_DATA_TOGGLE_ACTIVE)) {
-    Tab.getOrCreateInstance(element)
-  }
-})
 /**
  * jQuery
  */

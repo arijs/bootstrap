@@ -120,6 +120,47 @@ class Carousel extends BaseComponent {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const defaults = {
+      ARROW_LEFT_KEY,
+      ARROW_RIGHT_KEY,
+      TOUCHEVENT_COMPAT_WAIT,
+      ORDER_NEXT,
+      ORDER_PREV,
+      DIRECTION_LEFT,
+      DIRECTION_RIGHT,
+      EVENT_SLIDE,
+      EVENT_SLID,
+      EVENT_KEYDOWN,
+      EVENT_MOUSEENTER,
+      EVENT_MOUSELEAVE,
+      EVENT_DRAG_START,
+      EVENT_LOAD_DATA_API,
+      EVENT_CLICK_DATA_API,
+      CLASS_NAME_CAROUSEL,
+      CLASS_NAME_ACTIVE,
+      CLASS_NAME_SLIDE,
+      CLASS_NAME_END,
+      CLASS_NAME_START,
+      CLASS_NAME_NEXT,
+      CLASS_NAME_PREV,
+      SELECTOR_ACTIVE,
+      SELECTOR_ITEM,
+      SELECTOR_ACTIVE_ITEM,
+      SELECTOR_ITEM_IMG,
+      SELECTOR_INDICATORS,
+      SELECTOR_DATA_SLIDE,
+      SELECTOR_DATA_RIDE,
+      KEY_TO_DIRECTION,
+      DATA_API_KEY
+    }
+    return { ...defaults, ...overrides }
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
   // Public
   next() {
     this._slide(ORDER_NEXT)
@@ -405,6 +446,68 @@ class Carousel extends BaseComponent {
   }
 
   // Static
+  static _isInitialized = false
+
+  static init() {
+    if (this._isInitialized) {
+      return
+    }
+
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    this._clickHandler = function (event) {
+      const target = SelectorEngine.getElementFromSelector(this)
+
+      if (!target || !target.classList.contains(CLASS_NAME_CAROUSEL)) {
+        return
+      }
+
+      event.preventDefault()
+
+      const carousel = Carousel.getOrCreateInstance(target)
+      const slideIndex = this.getAttribute('data-bs-slide-to')
+
+      if (slideIndex) {
+        carousel.to(slideIndex)
+        carousel._maybeEnableCycle()
+        return
+      }
+
+      if (Manipulator.getDataAttribute(this, 'slide') === 'next') {
+        carousel.next()
+        carousel._maybeEnableCycle()
+        return
+      }
+
+      carousel.prev()
+      carousel._maybeEnableCycle()
+    }
+
+    this._loadHandler = () => {
+      const carousels = SelectorEngine.find(SELECTOR_DATA_RIDE)
+
+      for (const carousel of carousels) {
+        Carousel.getOrCreateInstance(carousel)
+      }
+    }
+
+    EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_SLIDE, this._clickHandler)
+    EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler)
+    this._isInitialized = true
+  }
+
+  static destroy() {
+    if (!this._isInitialized) {
+      return
+    }
+
+    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_SLIDE, this._clickHandler)
+    EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler)
+    this._isInitialized = false
+  }
+
   static jQueryInterface(config) {
     return this.each(function () {
       const data = Carousel.getOrCreateInstance(this, config)
@@ -429,41 +532,9 @@ class Carousel extends BaseComponent {
  * Data API implementation
  */
 
-EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_SLIDE, function (event) {
-  const target = SelectorEngine.getElementFromSelector(this)
-
-  if (!target || !target.classList.contains(CLASS_NAME_CAROUSEL)) {
-    return
-  }
-
-  event.preventDefault()
-
-  const carousel = Carousel.getOrCreateInstance(target)
-  const slideIndex = this.getAttribute('data-bs-slide-to')
-
-  if (slideIndex) {
-    carousel.to(slideIndex)
-    carousel._maybeEnableCycle()
-    return
-  }
-
-  if (Manipulator.getDataAttribute(this, 'slide') === 'next') {
-    carousel.next()
-    carousel._maybeEnableCycle()
-    return
-  }
-
-  carousel.prev()
-  carousel._maybeEnableCycle()
-})
-
-EventHandler.on(window, EVENT_LOAD_DATA_API, () => {
-  const carousels = SelectorEngine.find(SELECTOR_DATA_RIDE)
-
-  for (const carousel of carousels) {
-    Carousel.getOrCreateInstance(carousel)
-  }
-})
+if (typeof document !== 'undefined') {
+  Carousel.init()
+}
 
 /**
  * jQuery
