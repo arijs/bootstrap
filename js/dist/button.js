@@ -22,6 +22,7 @@
    */
 
   const NAME = 'button';
+  const DOCUMENT_DATA_API_REGISTRY_KEY = '__bootstrapButtonDataApiRegistry__';
 
   /**
    * Class definition
@@ -65,9 +66,17 @@
       });
     }
     static init() {
-      if (this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+      if (existingRegistration) {
+        this._clickHandler = existingRegistration.handler;
+        this._isInitialized = true;
+        index_js.defineJQueryPlugin(this);
+        return;
+      }
+      this._isInitialized = false;
       const {
         SELECTOR_DATA_TOGGLE,
         DATA_API_KEY
@@ -80,19 +89,29 @@
         data.toggle();
       };
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      document[DOCUMENT_DATA_API_REGISTRY_KEY] = {
+        eventName: EVENT_CLICK_DATA_API,
+        selector: SELECTOR_DATA_TOGGLE,
+        handler: this._clickHandler
+      };
       index_js.defineJQueryPlugin(this);
       this._isInitialized = true;
     }
     static destroy() {
-      if (!this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
-      const {
-        SELECTOR_DATA_TOGGLE,
-        DATA_API_KEY
-      } = this.ConfigConstants;
-      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
-      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+      if (!existingRegistration && !this._isInitialized) {
+        return;
+      }
+      if (!existingRegistration) {
+        this._clickHandler = null;
+        this._isInitialized = false;
+        return;
+      }
+      EventHandler.off(document, existingRegistration.eventName, existingRegistration.selector, existingRegistration.handler);
+      delete document[DOCUMENT_DATA_API_REGISTRY_KEY];
       this._clickHandler = null;
       this._isInitialized = false;
     }

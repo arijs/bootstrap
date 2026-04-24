@@ -22,6 +22,7 @@
    */
 
   const NAME = 'popover';
+  const SELECTOR_ARROW = '.popover-arrow';
   const SELECTOR_TITLE = '.popover-header';
   const SELECTOR_CONTENT = '.popover-body';
   const Default = {
@@ -52,6 +53,21 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ...super.getConfigConstants(),
+        SELECTOR_ARROW,
+        SELECTOR_TITLE,
+        SELECTOR_CONTENT
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Overrides
     _isWithContent() {
@@ -60,6 +76,10 @@
 
     // Private
     _getContentForTemplate() {
+      const {
+        SELECTOR_TITLE,
+        SELECTOR_CONTENT
+      } = this.constructor.ConfigConstants;
       return {
         [SELECTOR_TITLE]: this._getTitle(),
         [SELECTOR_CONTENT]: this._getContent()

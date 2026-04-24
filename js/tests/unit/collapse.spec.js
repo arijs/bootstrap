@@ -31,6 +31,41 @@ describe('Collapse', () => {
     })
   })
 
+  describe('getConfigConstants', () => {
+    it('should compute derived selectors from class constants by default', () => {
+      const constants = Collapse.getConfigConstants()
+
+      expect(constants.CLASS_NAME_COLLAPSE).toEqual('collapse')
+      expect(constants.CLASS_NAME_SHOW).toEqual('show')
+      expect(constants.CLASS_NAME_COLLAPSING).toEqual('collapsing')
+      expect(constants.CLASS_NAME_DEEPER_CHILDREN)
+        .toEqual(`:scope .collapse .collapse`)
+      expect(constants.SELECTOR_ACTIVES)
+        .toEqual(`.collapse.show, .collapse.collapsing`)
+    })
+
+    it('should recompute derived selectors when base class constants are overridden', () => {
+      const constants = Collapse.getConfigConstants({
+        CLASS_NAME_COLLAPSE: 've-collapse',
+        CLASS_NAME_SHOW: 've-show',
+        CLASS_NAME_COLLAPSING: 've-collapsing'
+      })
+
+      expect(constants.CLASS_NAME_DEEPER_CHILDREN).toEqual(':scope .ve-collapse .ve-collapse')
+      expect(constants.SELECTOR_ACTIVES).toEqual('.ve-collapse.ve-show, .ve-collapse.ve-collapsing')
+    })
+
+    it('should keep explicit derived selector overrides as-is', () => {
+      const constants = Collapse.getConfigConstants({
+        CLASS_NAME_DEEPER_CHILDREN: ':scope .custom-one .custom-two',
+        SELECTOR_ACTIVES: '.custom-active, .custom-collapsing'
+      })
+
+      expect(constants.CLASS_NAME_DEEPER_CHILDREN).toEqual(':scope .custom-one .custom-two')
+      expect(constants.SELECTOR_ACTIVES).toEqual('.custom-active, .custom-collapsing')
+    })
+  })
+
   describe('constructor', () => {
     it('should take care of element either passed as a CSS selector or DOM element', () => {
       fixtureEl.innerHTML = '<div class="my-collapse"></div>'

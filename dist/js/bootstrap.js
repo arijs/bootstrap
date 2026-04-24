@@ -738,7 +738,7 @@
       const parentClass = this;
 
       // Helper to split flat overrides into Default, DefaultType, and ConfigConstants
-      const splitOverrides = (flat = {}) => {
+      const splitOverrides = flat => {
         const parentDefault = parentClass.Default || {};
         const parentDefaultType = parentClass.DefaultType || {};
         const parentConfigConstants = parentClass.ConfigConstants || {};
@@ -944,7 +944,7 @@
   const EVENT_CLOSE = `close${EVENT_KEY$9}`;
   const EVENT_CLOSED = `closed${EVENT_KEY$9}`;
   const CLASS_NAME_FADE$5 = 'fade';
-  const CLASS_NAME_SHOW$7 = 'show';
+  const CLASS_NAME_SHOW$6 = 'show';
 
   /**
    * Class definition
@@ -960,7 +960,7 @@
         EVENT_CLOSE,
         EVENT_CLOSED,
         CLASS_NAME_FADE: CLASS_NAME_FADE$5,
-        CLASS_NAME_SHOW: CLASS_NAME_SHOW$7
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$6
       };
       return {
         ...defaults,
@@ -1041,6 +1041,7 @@
    */
 
   const NAME$e = 'button';
+  const DOCUMENT_DATA_API_REGISTRY_KEY$1 = '__bootstrapButtonDataApiRegistry__';
 
   /**
    * Class definition
@@ -1084,9 +1085,17 @@
       });
     }
     static init() {
-      if (this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY$1];
+      if (existingRegistration) {
+        this._clickHandler = existingRegistration.handler;
+        this._isInitialized = true;
+        defineJQueryPlugin(this);
+        return;
+      }
+      this._isInitialized = false;
       const {
         SELECTOR_DATA_TOGGLE,
         DATA_API_KEY
@@ -1099,19 +1108,29 @@
         data.toggle();
       };
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      document[DOCUMENT_DATA_API_REGISTRY_KEY$1] = {
+        eventName: EVENT_CLICK_DATA_API,
+        selector: SELECTOR_DATA_TOGGLE,
+        handler: this._clickHandler
+      };
       defineJQueryPlugin(this);
       this._isInitialized = true;
     }
     static destroy() {
-      if (!this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
-      const {
-        SELECTOR_DATA_TOGGLE,
-        DATA_API_KEY
-      } = this.ConfigConstants;
-      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
-      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY$1];
+      if (!existingRegistration && !this._isInitialized) {
+        return;
+      }
+      if (!existingRegistration) {
+        this._clickHandler = null;
+        this._isInitialized = false;
+        return;
+      }
+      EventHandler.off(document, existingRegistration.eventName, existingRegistration.selector, existingRegistration.handler);
+      delete document[DOCUMENT_DATA_API_REGISTRY_KEY$1];
       this._clickHandler = null;
       this._isInitialized = false;
     }
@@ -1261,7 +1280,7 @@
   const NAME$c = 'carousel';
   const DATA_KEY$7 = 'bs.carousel';
   const EVENT_KEY$7 = `.${DATA_KEY$7}`;
-  const DATA_API_KEY$4 = '.data-api';
+  const DATA_API_KEY$3 = '.data-api';
   const ARROW_LEFT_KEY$1 = 'ArrowLeft';
   const ARROW_RIGHT_KEY$1 = 'ArrowRight';
   const TOUCHEVENT_COMPAT_WAIT = 500; // Time for mouse compat events to fire after touch
@@ -1276,8 +1295,8 @@
   const EVENT_MOUSEENTER$1 = `mouseenter${EVENT_KEY$7}`;
   const EVENT_MOUSELEAVE$1 = `mouseleave${EVENT_KEY$7}`;
   const EVENT_DRAG_START = `dragstart${EVENT_KEY$7}`;
-  const EVENT_LOAD_DATA_API$3 = `load${EVENT_KEY$7}${DATA_API_KEY$4}`;
-  const EVENT_CLICK_DATA_API$4 = `click${EVENT_KEY$7}${DATA_API_KEY$4}`;
+  const EVENT_LOAD_DATA_API$3 = `load${EVENT_KEY$7}${DATA_API_KEY$3}`;
+  const EVENT_CLICK_DATA_API$3 = `click${EVENT_KEY$7}${DATA_API_KEY$3}`;
   const CLASS_NAME_CAROUSEL = 'carousel';
   const CLASS_NAME_ACTIVE$2 = 'active';
   const CLASS_NAME_SLIDE = 'slide';
@@ -1359,7 +1378,7 @@
         EVENT_MOUSELEAVE: EVENT_MOUSELEAVE$1,
         EVENT_DRAG_START,
         EVENT_LOAD_DATA_API: EVENT_LOAD_DATA_API$3,
-        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$4,
+        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$3,
         CLASS_NAME_CAROUSEL,
         CLASS_NAME_ACTIVE: CLASS_NAME_ACTIVE$2,
         CLASS_NAME_SLIDE,
@@ -1375,7 +1394,7 @@
         SELECTOR_DATA_SLIDE,
         SELECTOR_DATA_RIDE,
         KEY_TO_DIRECTION,
-        DATA_API_KEY: DATA_API_KEY$4
+        DATA_API_KEY: DATA_API_KEY$3
       };
       return {
         ...defaults,
@@ -1641,7 +1660,7 @@
           Carousel.getOrCreateInstance(carousel);
         }
       };
-      EventHandler.on(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_SLIDE, this._clickHandler);
+      EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_SLIDE, this._clickHandler);
       EventHandler.on(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
       this._isInitialized = true;
     }
@@ -1649,7 +1668,7 @@
       if (!this._isInitialized) {
         return;
       }
-      EventHandler.off(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_SLIDE, this._clickHandler);
+      EventHandler.off(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_SLIDE, this._clickHandler);
       EventHandler.off(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
       this._isInitialized = false;
     }
@@ -1699,22 +1718,6 @@
   const NAME$b = 'collapse';
   const DATA_KEY$6 = 'bs.collapse';
   const EVENT_KEY$6 = `.${DATA_KEY$6}`;
-  const DATA_API_KEY$3 = '.data-api';
-  const EVENT_SHOW$5 = `show${EVENT_KEY$6}`;
-  const EVENT_SHOWN$5 = `shown${EVENT_KEY$6}`;
-  const EVENT_HIDE$5 = `hide${EVENT_KEY$6}`;
-  const EVENT_HIDDEN$5 = `hidden${EVENT_KEY$6}`;
-  const EVENT_CLICK_DATA_API$3 = `click${EVENT_KEY$6}${DATA_API_KEY$3}`;
-  const CLASS_NAME_SHOW$6 = 'show';
-  const CLASS_NAME_COLLAPSE = 'collapse';
-  const CLASS_NAME_COLLAPSING = 'collapsing';
-  const CLASS_NAME_COLLAPSED = 'collapsed';
-  const CLASS_NAME_DEEPER_CHILDREN = `:scope .${CLASS_NAME_COLLAPSE} .${CLASS_NAME_COLLAPSE}`;
-  const CLASS_NAME_HORIZONTAL = 'collapse-horizontal';
-  const WIDTH = 'width';
-  const HEIGHT = 'height';
-  const SELECTOR_ACTIVES = '.collapse.show, .collapse.collapsing';
-  const SELECTOR_DATA_TOGGLE$3 = '[data-bs-toggle="collapse"]';
   const Default$a = {
     parent: null,
     toggle: true
@@ -1731,9 +1734,12 @@
   class Collapse extends BaseComponent {
     constructor(element, config) {
       super(element, config);
+      const {
+        SELECTOR_DATA_TOGGLE
+      } = this.constructor.ConfigConstants;
       this._isTransitioning = false;
       this._triggerArray = [];
-      const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE$3);
+      const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE);
       for (const elem of toggleList) {
         const selector = SelectorEngine.getSelectorFromElement(elem);
         const filterElement = SelectorEngine.find(selector).filter(foundElement => foundElement === this._element);
@@ -1761,28 +1767,33 @@
       return NAME$b;
     }
     static getConfigConstants(overrides = {}) {
-      const defaults = {
-        EVENT_SHOW: EVENT_SHOW$5,
-        EVENT_SHOWN: EVENT_SHOWN$5,
-        EVENT_HIDE: EVENT_HIDE$5,
-        EVENT_HIDDEN: EVENT_HIDDEN$5,
-        EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$3,
-        CLASS_NAME_SHOW: CLASS_NAME_SHOW$6,
-        CLASS_NAME_COLLAPSE,
-        CLASS_NAME_COLLAPSING,
-        CLASS_NAME_COLLAPSED,
-        CLASS_NAME_DEEPER_CHILDREN,
-        CLASS_NAME_HORIZONTAL,
-        WIDTH,
-        HEIGHT,
-        SELECTOR_ACTIVES,
-        SELECTOR_DATA_TOGGLE: SELECTOR_DATA_TOGGLE$3,
-        DATA_API_KEY: DATA_API_KEY$3
-      };
-      return {
-        ...defaults,
+      var _values$CLASS_NAME_DE, _values$SELECTOR_ACTI;
+      const values = {
+        EVENT_SHOW: `show${EVENT_KEY$6}`,
+        EVENT_SHOWN: `shown${EVENT_KEY$6}`,
+        EVENT_HIDE: `hide${EVENT_KEY$6}`,
+        EVENT_HIDDEN: `hidden${EVENT_KEY$6}`,
+        EVENT_CLICK_DATA_API: `click${EVENT_KEY$6}.data-api`,
+        CLASS_NAME_SHOW: 'show',
+        CLASS_NAME_COLLAPSE: 'collapse',
+        CLASS_NAME_COLLAPSING: 'collapsing',
+        CLASS_NAME_COLLAPSED: 'collapsed',
+        // CLASS_NAME_DEEPER_CHILDREN:
+        // intentionally undefined so it is generated unless
+        // specifically provided by the user
+        CLASS_NAME_DEEPER_CHILDREN: undefined,
+        CLASS_NAME_HORIZONTAL: 'collapse-horizontal',
+        WIDTH: 'width',
+        HEIGHT: 'height',
+        // SELECTOR_ACTIVES: same as above
+        SELECTOR_ACTIVES: undefined,
+        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="collapse"]',
+        DATA_API_KEY: '.data-api',
         ...overrides
       };
+      (_values$CLASS_NAME_DE = values.CLASS_NAME_DEEPER_CHILDREN) != null ? _values$CLASS_NAME_DE : values.CLASS_NAME_DEEPER_CHILDREN = `:scope .${values.CLASS_NAME_COLLAPSE} .${values.CLASS_NAME_COLLAPSE}`;
+      (_values$SELECTOR_ACTI = values.SELECTOR_ACTIVES) != null ? _values$SELECTOR_ACTI : values.SELECTOR_ACTIVES = `.${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_SHOW}, .${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_COLLAPSING}`;
+      return values;
     }
     static get ConfigConstants() {
       return this.getConfigConstants();
@@ -1797,6 +1808,14 @@
       }
     }
     show() {
+      const {
+        SELECTOR_ACTIVES,
+        EVENT_SHOW,
+        CLASS_NAME_COLLAPSE,
+        CLASS_NAME_COLLAPSING,
+        EVENT_SHOWN,
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       if (this._isTransitioning || this._isShown()) {
         return;
       }
@@ -1804,14 +1823,14 @@
 
       // find active children
       if (this._config.parent) {
-        activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES).filter(element => element !== this._element).map(element => Collapse.getOrCreateInstance(element, {
+        activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES).filter(element => element !== this._element).map(element => this.constructor.getOrCreateInstance(element, {
           toggle: false
         }));
       }
       if (activeChildren.length && activeChildren[0]._isTransitioning) {
         return;
       }
-      const startEvent = EventHandler.trigger(this._element, EVENT_SHOW$5);
+      const startEvent = EventHandler.trigger(this._element, EVENT_SHOW);
       if (startEvent.defaultPrevented) {
         return;
       }
@@ -1827,9 +1846,9 @@
       const complete = () => {
         this._isTransitioning = false;
         this._element.classList.remove(CLASS_NAME_COLLAPSING);
-        this._element.classList.add(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$6);
+        this._element.classList.add(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW);
         this._element.style[dimension] = '';
-        EventHandler.trigger(this._element, EVENT_SHOWN$5);
+        EventHandler.trigger(this._element, EVENT_SHOWN);
       };
       const capitalizedDimension = dimension[0].toUpperCase() + dimension.slice(1);
       const scrollSize = `scroll${capitalizedDimension}`;
@@ -1837,10 +1856,17 @@
       this._element.style[dimension] = `${this._element[scrollSize]}px`;
     }
     hide() {
+      const {
+        EVENT_HIDE,
+        CLASS_NAME_COLLAPSING,
+        CLASS_NAME_COLLAPSE,
+        CLASS_NAME_SHOW,
+        EVENT_HIDDEN
+      } = this.constructor.ConfigConstants;
       if (this._isTransitioning || !this._isShown()) {
         return;
       }
-      const startEvent = EventHandler.trigger(this._element, EVENT_HIDE$5);
+      const startEvent = EventHandler.trigger(this._element, EVENT_HIDE);
       if (startEvent.defaultPrevented) {
         return;
       }
@@ -1848,7 +1874,7 @@
       this._element.style[dimension] = `${this._element.getBoundingClientRect()[dimension]}px`;
       reflow(this._element);
       this._element.classList.add(CLASS_NAME_COLLAPSING);
-      this._element.classList.remove(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$6);
+      this._element.classList.remove(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW);
       for (const trigger of this._triggerArray) {
         const element = SelectorEngine.getElementFromSelector(trigger);
         if (element && !this._isShown(element)) {
@@ -1860,7 +1886,7 @@
         this._isTransitioning = false;
         this._element.classList.remove(CLASS_NAME_COLLAPSING);
         this._element.classList.add(CLASS_NAME_COLLAPSE);
-        EventHandler.trigger(this._element, EVENT_HIDDEN$5);
+        EventHandler.trigger(this._element, EVENT_HIDDEN);
       };
       this._element.style[dimension] = '';
       this._queueCallback(complete, this._element, true);
@@ -1868,7 +1894,10 @@
 
     // Private
     _isShown(element = this._element) {
-      return element.classList.contains(CLASS_NAME_SHOW$6);
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
+      return element.classList.contains(CLASS_NAME_SHOW);
     }
     _configAfterMerge(config) {
       config.toggle = Boolean(config.toggle); // Coerce string values
@@ -1876,13 +1905,21 @@
       return config;
     }
     _getDimension() {
+      const {
+        CLASS_NAME_HORIZONTAL,
+        WIDTH,
+        HEIGHT
+      } = this.constructor.ConfigConstants;
       return this._element.classList.contains(CLASS_NAME_HORIZONTAL) ? WIDTH : HEIGHT;
     }
     _initializeChildren() {
+      const {
+        SELECTOR_DATA_TOGGLE
+      } = this.constructor.ConfigConstants;
       if (!this._config.parent) {
         return;
       }
-      const children = this._getFirstLevelChildren(SELECTOR_DATA_TOGGLE$3);
+      const children = this._getFirstLevelChildren(SELECTOR_DATA_TOGGLE);
       for (const element of children) {
         const selected = SelectorEngine.getElementFromSelector(element);
         if (selected) {
@@ -1891,11 +1928,17 @@
       }
     }
     _getFirstLevelChildren(selector) {
+      const {
+        CLASS_NAME_DEEPER_CHILDREN
+      } = this.constructor.ConfigConstants;
       const children = SelectorEngine.find(CLASS_NAME_DEEPER_CHILDREN, this._config.parent);
       // remove children if greater depth
       return SelectorEngine.find(selector, this._config.parent).filter(element => !children.includes(element));
     }
     _addAriaAndCollapsedClass(triggerArray, isOpen) {
+      const {
+        CLASS_NAME_COLLAPSED
+      } = this.constructor.ConfigConstants;
       if (!triggerArray.length) {
         return;
       }
@@ -1908,6 +1951,11 @@
     // Static
 
     static init() {
+      const ComponentClass = this;
+      const {
+        EVENT_CLICK_DATA_API,
+        SELECTOR_DATA_TOGGLE
+      } = this.ConfigConstants;
       if (this._isInitialized) {
         return;
       }
@@ -1920,19 +1968,23 @@
           event.preventDefault();
         }
         for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-          Collapse.getOrCreateInstance(element, {
+          ComponentClass.getOrCreateInstance(element, {
             toggle: false
           }).toggle();
         }
       };
-      EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, this._clickHandler);
+      EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
       this._isInitialized = true;
     }
     static destroy() {
+      const {
+        EVENT_CLICK_DATA_API,
+        SELECTOR_DATA_TOGGLE
+      } = this.ConfigConstants;
       if (!this._isInitialized) {
         return;
       }
-      EventHandler.off(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, this._clickHandler);
+      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
       this._isInitialized = false;
     }
     static jQueryInterface(config) {
@@ -1995,6 +2047,7 @@
     popperConfig: '(null|object|function)',
     reference: '(string|element|object)'
   };
+  const DOCUMENT_DATA_API_REGISTRY_KEY = '__bootstrapDropdownDataApiRegistry__';
 
   /**
    * Class definition
@@ -2311,8 +2364,9 @@
           continue;
         }
         const composedPath = event.composedPath();
+        const isToggleTarget = composedPath.includes(context._element) || context._element.contains(event.target);
         const isMenuTarget = composedPath.includes(context._menu);
-        if (composedPath.includes(context._element) || context._config.autoClose === 'inside' && !isMenuTarget || context._config.autoClose === 'outside' && isMenuTarget) {
+        if (isToggleTarget || context._config.autoClose === 'inside' && !isMenuTarget || context._config.autoClose === 'outside' && isMenuTarget) {
           continue;
         }
 
@@ -2370,9 +2424,19 @@
       }
     }
     static init() {
-      if (this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+      if (existingRegistration) {
+        this._clearMenusHandler = existingRegistration.clearMenusHandler;
+        this._keydownHandler = existingRegistration.keydownHandler;
+        this._toggleClickHandler = existingRegistration.toggleClickHandler;
+        this._isInitialized = true;
+        defineJQueryPlugin(this);
+        return;
+      }
+      this._isInitialized = false;
       const Class = this; // capture class for use in handler closures below
       const {
         SELECTOR_DATA_TOGGLE,
@@ -2389,7 +2453,7 @@
       this._clearMenusHandler = event => Class.clearMenus(event);
 
       // dataApiKeydownHandler is delegated: EventHandler calls fn.call(target, event)
-      // so `this` inside it is the matched DOM element — correct for DOM navigation.
+      // so `this` inside it is the matched DOM element - correct for DOM navigation.
       // We inject Class via the event so the handler can read the right ConfigConstants.
       this._keydownHandler = function (event) {
         event._bsDropdownClass = Class;
@@ -2407,26 +2471,40 @@
       EventHandler.on(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
       EventHandler.on(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      document[DOCUMENT_DATA_API_REGISTRY_KEY] = {
+        keydownEventName: EVENT_KEYDOWN_DATA_API,
+        keyupEventName: EVENT_KEYUP_DATA_API,
+        clickEventName: EVENT_CLICK_DATA_API,
+        toggleSelector: SELECTOR_DATA_TOGGLE,
+        menuSelector: SELECTOR_MENU,
+        clearMenusHandler: this._clearMenusHandler,
+        keydownHandler: this._keydownHandler,
+        toggleClickHandler: this._toggleClickHandler
+      };
       defineJQueryPlugin(this);
       this._isInitialized = true;
     }
     static destroy() {
-      if (!this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
-      const {
-        SELECTOR_DATA_TOGGLE,
-        SELECTOR_MENU,
-        DATA_API_KEY
-      } = this.ConfigConstants;
-      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
-      const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
-      const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
-      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
-      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
-      EventHandler.off(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
-      EventHandler.off(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
-      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+      if (!existingRegistration && !this._isInitialized) {
+        return;
+      }
+      if (!existingRegistration) {
+        this._clearMenusHandler = null;
+        this._keydownHandler = null;
+        this._toggleClickHandler = null;
+        this._isInitialized = false;
+        return;
+      }
+      EventHandler.off(document, existingRegistration.keydownEventName, existingRegistration.toggleSelector, existingRegistration.keydownHandler);
+      EventHandler.off(document, existingRegistration.keydownEventName, existingRegistration.menuSelector, existingRegistration.keydownHandler);
+      EventHandler.off(document, existingRegistration.clickEventName, existingRegistration.clearMenusHandler);
+      EventHandler.off(document, existingRegistration.keyupEventName, existingRegistration.clearMenusHandler);
+      EventHandler.off(document, existingRegistration.clickEventName, existingRegistration.toggleSelector, existingRegistration.toggleClickHandler);
+      delete document[DOCUMENT_DATA_API_REGISTRY_KEY];
       this._clearMenusHandler = null;
       this._keydownHandler = null;
       this._toggleClickHandler = null;
@@ -3655,6 +3733,7 @@
   const CLASS_NAME_MODAL = 'modal';
   const CLASS_NAME_SHOW$2 = 'show';
   const SELECTOR_TOOLTIP_INNER = '.tooltip-inner';
+  const SELECTOR_ARROW$1 = '.tooltip-arrow';
   const SELECTOR_MODAL = `.${CLASS_NAME_MODAL}`;
   const EVENT_MODAL_HIDE = 'hide.bs.modal';
   const TRIGGER_HOVER = 'hover';
@@ -3755,6 +3834,39 @@
     static get NAME() {
       return NAME$4;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        CLASS_NAME_FADE: CLASS_NAME_FADE$2,
+        CLASS_NAME_MODAL,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$2,
+        SELECTOR_TOOLTIP_INNER,
+        SELECTOR_ARROW: SELECTOR_ARROW$1,
+        SELECTOR_MODAL,
+        EVENT_MODAL_HIDE,
+        TRIGGER_HOVER,
+        TRIGGER_FOCUS,
+        TRIGGER_CLICK,
+        TRIGGER_MANUAL,
+        EVENT_HIDE: EVENT_HIDE$2,
+        EVENT_HIDDEN: EVENT_HIDDEN$2,
+        EVENT_SHOW: EVENT_SHOW$2,
+        EVENT_SHOWN: EVENT_SHOWN$2,
+        EVENT_INSERTED,
+        EVENT_CLICK: EVENT_CLICK$1,
+        EVENT_FOCUSIN: EVENT_FOCUSIN$1,
+        EVENT_FOCUSOUT: EVENT_FOCUSOUT$1,
+        EVENT_MOUSEENTER,
+        EVENT_MOUSELEAVE,
+        ATTACHMENT_MAP: AttachmentMap
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     enable() {
@@ -3778,6 +3890,10 @@
     }
     dispose() {
       clearTimeout(this._timeout);
+      const {
+        SELECTOR_MODAL,
+        EVENT_MODAL_HIDE
+      } = this.constructor.ConfigConstants;
       EventHandler.off(this._element.closest(SELECTOR_MODAL), EVENT_MODAL_HIDE, this._hideModalHandler);
       if (this._element.getAttribute('data-bs-original-title')) {
         this._element.setAttribute('title', this._element.getAttribute('data-bs-original-title'));
@@ -3792,7 +3908,13 @@
       if (!(this._isWithContent() && this._isEnabled)) {
         return;
       }
-      const showEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOW$2));
+      const {
+        EVENT_SHOW,
+        EVENT_INSERTED,
+        CLASS_NAME_SHOW,
+        EVENT_SHOWN
+      } = this.constructor.ConfigConstants;
+      const showEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOW));
       const shadowRoot = findShadowRoot(this._element);
       const isInTheDom = (shadowRoot || this._element.ownerDocument.documentElement).contains(this._element);
       if (showEvent.defaultPrevented || !isInTheDom) {
@@ -3811,7 +3933,7 @@
         EventHandler.trigger(this._element, this.constructor.eventName(EVENT_INSERTED));
       }
       this._popper = this._createPopper(tip);
-      tip.classList.add(CLASS_NAME_SHOW$2);
+      tip.classList.add(CLASS_NAME_SHOW);
 
       // If this is a touch-enabled device we add extra
       // empty mouseover listeners to the body's immediate children;
@@ -3823,7 +3945,7 @@
         }
       }
       const complete = () => {
-        EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOWN$2));
+        EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOWN));
         if (this._isHovered === false) {
           this._leave();
         }
@@ -3835,12 +3957,20 @@
       if (!this._isShown()) {
         return;
       }
-      const hideEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDE$2));
+      const {
+        EVENT_HIDE,
+        CLASS_NAME_SHOW,
+        TRIGGER_CLICK,
+        TRIGGER_FOCUS,
+        TRIGGER_HOVER,
+        EVENT_HIDDEN
+      } = this.constructor.ConfigConstants;
+      const hideEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDE));
       if (hideEvent.defaultPrevented) {
         return;
       }
       const tip = this._getTipElement();
-      tip.classList.remove(CLASS_NAME_SHOW$2);
+      tip.classList.remove(CLASS_NAME_SHOW);
 
       // If this is a touch-enabled device we remove the extra
       // empty mouseover listeners we added for iOS support
@@ -3862,7 +3992,7 @@
           this._disposePopper();
         }
         this._element.removeAttribute('aria-describedby');
-        EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDDEN$2));
+        EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDDEN));
       };
       this._queueCallback(complete, this.tip, this._isAnimated());
     }
@@ -3883,19 +4013,23 @@
       return this.tip;
     }
     _createTipElement(content) {
+      const {
+        CLASS_NAME_FADE,
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       const tip = this._getTemplateFactory(content).toHtml();
 
       // TODO: remove this check in v6
       if (!tip) {
         return null;
       }
-      tip.classList.remove(CLASS_NAME_FADE$2, CLASS_NAME_SHOW$2);
+      tip.classList.remove(CLASS_NAME_FADE, CLASS_NAME_SHOW);
       // TODO: v6 the following can be achieved with CSS only
       tip.classList.add(`bs-${this.constructor.NAME}-auto`);
       const tipId = getUID(this.constructor.NAME).toString();
       tip.setAttribute('id', tipId);
       if (this._isAnimated()) {
-        tip.classList.add(CLASS_NAME_FADE$2);
+        tip.classList.add(CLASS_NAME_FADE);
       }
       return tip;
     }
@@ -3921,6 +4055,9 @@
       return this._templateFactory;
     }
     _getContentForTemplate() {
+      const {
+        SELECTOR_TOOLTIP_INNER
+      } = this.constructor.ConfigConstants;
       return {
         [SELECTOR_TOOLTIP_INNER]: this._getTitle()
       };
@@ -3934,14 +4071,23 @@
       return this.constructor.getOrCreateInstance(event.delegateTarget, this._getDelegateConfig());
     }
     _isAnimated() {
-      return this._config.animation || this.tip && this.tip.classList.contains(CLASS_NAME_FADE$2);
+      const {
+        CLASS_NAME_FADE
+      } = this.constructor.ConfigConstants;
+      return this._config.animation || this.tip && this.tip.classList.contains(CLASS_NAME_FADE);
     }
     _isShown() {
-      return this.tip && this.tip.classList.contains(CLASS_NAME_SHOW$2);
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
+      return this.tip && this.tip.classList.contains(CLASS_NAME_SHOW);
     }
     _createPopper(tip) {
+      const {
+        ATTACHMENT_MAP
+      } = this.constructor.ConfigConstants;
       const placement = execute(this._config.placement, [this, tip, this._element]);
-      const attachment = AttachmentMap[placement.toUpperCase()];
+      const attachment = ATTACHMENT_MAP[placement.toUpperCase()];
       return Popper__namespace.createPopper(this._element, tip, this._getPopperConfig(attachment));
     }
     _getOffset() {
@@ -3960,6 +4106,9 @@
       return execute(arg, [this._element, this._element]);
     }
     _getPopperConfig(attachment) {
+      const {
+        SELECTOR_ARROW
+      } = this.constructor.ConfigConstants;
       const defaultBsPopperConfig = {
         placement: attachment,
         modifiers: [{
@@ -3980,7 +4129,7 @@
         }, {
           name: 'arrow',
           options: {
-            element: `.${this.constructor.NAME}-arrow`
+            element: SELECTOR_ARROW
           }
         }, {
           name: 'preSetPlacement',
@@ -3999,17 +4148,30 @@
       };
     }
     _setListeners() {
+      const {
+        EVENT_CLICK,
+        TRIGGER_CLICK,
+        TRIGGER_MANUAL,
+        TRIGGER_HOVER,
+        EVENT_MOUSEENTER,
+        EVENT_FOCUSIN,
+        EVENT_MOUSELEAVE,
+        EVENT_FOCUSOUT,
+        TRIGGER_FOCUS,
+        SELECTOR_MODAL,
+        EVENT_MODAL_HIDE
+      } = this.constructor.ConfigConstants;
       const triggers = this._config.trigger.split(' ');
       for (const trigger of triggers) {
-        if (trigger === 'click') {
-          EventHandler.on(this._element, this.constructor.eventName(EVENT_CLICK$1), this._config.selector, event => {
+        if (trigger === TRIGGER_CLICK) {
+          EventHandler.on(this._element, this.constructor.eventName(EVENT_CLICK), this._config.selector, event => {
             const context = this._initializeOnDelegatedTarget(event);
             context._activeTrigger[TRIGGER_CLICK] = !(context._isShown() && context._activeTrigger[TRIGGER_CLICK]);
             context.toggle();
           });
         } else if (trigger !== TRIGGER_MANUAL) {
-          const eventIn = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSEENTER) : this.constructor.eventName(EVENT_FOCUSIN$1);
-          const eventOut = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSELEAVE) : this.constructor.eventName(EVENT_FOCUSOUT$1);
+          const eventIn = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSEENTER) : this.constructor.eventName(EVENT_FOCUSIN);
+          const eventOut = trigger === TRIGGER_HOVER ? this.constructor.eventName(EVENT_MOUSELEAVE) : this.constructor.eventName(EVENT_FOCUSOUT);
           EventHandler.on(this._element, eventIn, this._config.selector, event => {
             const context = this._initializeOnDelegatedTarget(event);
             context._activeTrigger[event.type === 'focusin' ? TRIGGER_FOCUS : TRIGGER_HOVER] = true;
@@ -4103,6 +4265,9 @@
       return config;
     }
     _getDelegateConfig() {
+      const {
+        TRIGGER_MANUAL
+      } = this.constructor.ConfigConstants;
       const config = {};
       for (const [key, value] of Object.entries(this._config)) {
         if (this.constructor.Default[key] !== value) {
@@ -4110,7 +4275,7 @@
         }
       }
       config.selector = false;
-      config.trigger = 'manual';
+      config.trigger = TRIGGER_MANUAL;
 
       // In the future can be replaced with:
       // const keysWithDifferentValues = Object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])
@@ -4162,6 +4327,7 @@
    */
 
   const NAME$3 = 'popover';
+  const SELECTOR_ARROW = '.popover-arrow';
   const SELECTOR_TITLE = '.popover-header';
   const SELECTOR_CONTENT = '.popover-body';
   const Default$2 = {
@@ -4192,6 +4358,21 @@
     static get NAME() {
       return NAME$3;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        ...super.getConfigConstants(),
+        SELECTOR_ARROW,
+        SELECTOR_TITLE,
+        SELECTOR_CONTENT
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Overrides
     _isWithContent() {
@@ -4200,6 +4381,10 @@
 
     // Private
     _getContentForTemplate() {
+      const {
+        SELECTOR_TITLE,
+        SELECTOR_CONTENT
+      } = this.constructor.ConfigConstants;
       return {
         [SELECTOR_TITLE]: this._getTitle(),
         [SELECTOR_CONTENT]: this._getContent()
@@ -4924,9 +5109,40 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        EVENT_MOUSEOVER,
+        EVENT_MOUSEOUT,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT,
+        EVENT_HIDE,
+        EVENT_HIDDEN,
+        EVENT_SHOW,
+        EVENT_SHOWN,
+        CLASS_NAME_FADE,
+        CLASS_NAME_HIDE,
+        CLASS_NAME_SHOW,
+        CLASS_NAME_SHOWING
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     show() {
+      const {
+        EVENT_SHOW,
+        CLASS_NAME_FADE,
+        CLASS_NAME_SHOWING,
+        EVENT_SHOWN,
+        CLASS_NAME_HIDE,
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       const showEvent = EventHandler.trigger(this._element, EVENT_SHOW);
       if (showEvent.defaultPrevented) {
         return;
@@ -4946,6 +5162,13 @@
       this._queueCallback(complete, this._element, this._config.animation);
     }
     hide() {
+      const {
+        EVENT_HIDE,
+        CLASS_NAME_HIDE,
+        CLASS_NAME_SHOWING,
+        CLASS_NAME_SHOW,
+        EVENT_HIDDEN
+      } = this.constructor.ConfigConstants;
       if (!this.isShown()) {
         return;
       }
@@ -4962,6 +5185,9 @@
       this._queueCallback(complete, this._element, this._config.animation);
     }
     dispose() {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       this._clearTimeout();
       if (this.isShown()) {
         this._element.classList.remove(CLASS_NAME_SHOW);
@@ -4969,6 +5195,9 @@
       super.dispose();
     }
     isShown() {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       return this._element.classList.contains(CLASS_NAME_SHOW);
     }
 
@@ -4985,15 +5214,25 @@
       }, this._config.delay);
     }
     _onInteraction(event, isInteracting) {
+      const {
+        EVENT_MOUSEOVER,
+        EVENT_MOUSEOUT,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT
+      } = this.constructor.ConfigConstants;
+      const typeMouseOver = EVENT_MOUSEOVER.split('.')[0];
+      const typeMouseOut = EVENT_MOUSEOUT.split('.')[0];
+      const typeFocusIn = EVENT_FOCUSIN.split('.')[0];
+      const typeFocusOut = EVENT_FOCUSOUT.split('.')[0];
       switch (event.type) {
-        case 'mouseover':
-        case 'mouseout':
+        case typeMouseOver:
+        case typeMouseOut:
           {
             this._hasMouseInteraction = isInteracting;
             break;
           }
-        case 'focusin':
-        case 'focusout':
+        case typeFocusIn:
+        case typeFocusOut:
           {
             this._hasKeyboardInteraction = isInteracting;
             break;
@@ -5010,6 +5249,12 @@
       this._maybeScheduleHide();
     }
     _setListeners() {
+      const {
+        EVENT_MOUSEOVER,
+        EVENT_MOUSEOUT,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT
+      } = this.constructor.ConfigConstants;
       EventHandler.on(this._element, EVENT_MOUSEOVER, event => this._onInteraction(event, true));
       EventHandler.on(this._element, EVENT_MOUSEOUT, event => this._onInteraction(event, false));
       EventHandler.on(this._element, EVENT_FOCUSIN, event => this._onInteraction(event, true));

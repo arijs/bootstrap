@@ -24,22 +24,6 @@
   const NAME = 'collapse';
   const DATA_KEY = 'bs.collapse';
   const EVENT_KEY = `.${DATA_KEY}`;
-  const DATA_API_KEY = '.data-api';
-  const EVENT_SHOW = `show${EVENT_KEY}`;
-  const EVENT_SHOWN = `shown${EVENT_KEY}`;
-  const EVENT_HIDE = `hide${EVENT_KEY}`;
-  const EVENT_HIDDEN = `hidden${EVENT_KEY}`;
-  const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`;
-  const CLASS_NAME_SHOW = 'show';
-  const CLASS_NAME_COLLAPSE = 'collapse';
-  const CLASS_NAME_COLLAPSING = 'collapsing';
-  const CLASS_NAME_COLLAPSED = 'collapsed';
-  const CLASS_NAME_DEEPER_CHILDREN = `:scope .${CLASS_NAME_COLLAPSE} .${CLASS_NAME_COLLAPSE}`;
-  const CLASS_NAME_HORIZONTAL = 'collapse-horizontal';
-  const WIDTH = 'width';
-  const HEIGHT = 'height';
-  const SELECTOR_ACTIVES = '.collapse.show, .collapse.collapsing';
-  const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="collapse"]';
   const Default = {
     parent: null,
     toggle: true
@@ -56,6 +40,9 @@
   class Collapse extends BaseComponent {
     constructor(element, config) {
       super(element, config);
+      const {
+        SELECTOR_DATA_TOGGLE
+      } = this.constructor.ConfigConstants;
       this._isTransitioning = false;
       this._triggerArray = [];
       const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE);
@@ -86,28 +73,33 @@
       return NAME;
     }
     static getConfigConstants(overrides = {}) {
-      const defaults = {
-        EVENT_SHOW,
-        EVENT_SHOWN,
-        EVENT_HIDE,
-        EVENT_HIDDEN,
-        EVENT_CLICK_DATA_API,
-        CLASS_NAME_SHOW,
-        CLASS_NAME_COLLAPSE,
-        CLASS_NAME_COLLAPSING,
-        CLASS_NAME_COLLAPSED,
-        CLASS_NAME_DEEPER_CHILDREN,
-        CLASS_NAME_HORIZONTAL,
-        WIDTH,
-        HEIGHT,
-        SELECTOR_ACTIVES,
-        SELECTOR_DATA_TOGGLE,
-        DATA_API_KEY
-      };
-      return {
-        ...defaults,
+      var _values$CLASS_NAME_DE, _values$SELECTOR_ACTI;
+      const values = {
+        EVENT_SHOW: `show${EVENT_KEY}`,
+        EVENT_SHOWN: `shown${EVENT_KEY}`,
+        EVENT_HIDE: `hide${EVENT_KEY}`,
+        EVENT_HIDDEN: `hidden${EVENT_KEY}`,
+        EVENT_CLICK_DATA_API: `click${EVENT_KEY}.data-api`,
+        CLASS_NAME_SHOW: 'show',
+        CLASS_NAME_COLLAPSE: 'collapse',
+        CLASS_NAME_COLLAPSING: 'collapsing',
+        CLASS_NAME_COLLAPSED: 'collapsed',
+        // CLASS_NAME_DEEPER_CHILDREN:
+        // intentionally undefined so it is generated unless
+        // specifically provided by the user
+        CLASS_NAME_DEEPER_CHILDREN: undefined,
+        CLASS_NAME_HORIZONTAL: 'collapse-horizontal',
+        WIDTH: 'width',
+        HEIGHT: 'height',
+        // SELECTOR_ACTIVES: same as above
+        SELECTOR_ACTIVES: undefined,
+        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="collapse"]',
+        DATA_API_KEY: '.data-api',
         ...overrides
       };
+      (_values$CLASS_NAME_DE = values.CLASS_NAME_DEEPER_CHILDREN) != null ? _values$CLASS_NAME_DE : values.CLASS_NAME_DEEPER_CHILDREN = `:scope .${values.CLASS_NAME_COLLAPSE} .${values.CLASS_NAME_COLLAPSE}`;
+      (_values$SELECTOR_ACTI = values.SELECTOR_ACTIVES) != null ? _values$SELECTOR_ACTI : values.SELECTOR_ACTIVES = `.${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_SHOW}, .${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_COLLAPSING}`;
+      return values;
     }
     static get ConfigConstants() {
       return this.getConfigConstants();
@@ -122,6 +114,14 @@
       }
     }
     show() {
+      const {
+        SELECTOR_ACTIVES,
+        EVENT_SHOW,
+        CLASS_NAME_COLLAPSE,
+        CLASS_NAME_COLLAPSING,
+        EVENT_SHOWN,
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       if (this._isTransitioning || this._isShown()) {
         return;
       }
@@ -129,7 +129,7 @@
 
       // find active children
       if (this._config.parent) {
-        activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES).filter(element => element !== this._element).map(element => Collapse.getOrCreateInstance(element, {
+        activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES).filter(element => element !== this._element).map(element => this.constructor.getOrCreateInstance(element, {
           toggle: false
         }));
       }
@@ -162,6 +162,13 @@
       this._element.style[dimension] = `${this._element[scrollSize]}px`;
     }
     hide() {
+      const {
+        EVENT_HIDE,
+        CLASS_NAME_COLLAPSING,
+        CLASS_NAME_COLLAPSE,
+        CLASS_NAME_SHOW,
+        EVENT_HIDDEN
+      } = this.constructor.ConfigConstants;
       if (this._isTransitioning || !this._isShown()) {
         return;
       }
@@ -193,6 +200,9 @@
 
     // Private
     _isShown(element = this._element) {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       return element.classList.contains(CLASS_NAME_SHOW);
     }
     _configAfterMerge(config) {
@@ -201,9 +211,17 @@
       return config;
     }
     _getDimension() {
+      const {
+        CLASS_NAME_HORIZONTAL,
+        WIDTH,
+        HEIGHT
+      } = this.constructor.ConfigConstants;
       return this._element.classList.contains(CLASS_NAME_HORIZONTAL) ? WIDTH : HEIGHT;
     }
     _initializeChildren() {
+      const {
+        SELECTOR_DATA_TOGGLE
+      } = this.constructor.ConfigConstants;
       if (!this._config.parent) {
         return;
       }
@@ -216,11 +234,17 @@
       }
     }
     _getFirstLevelChildren(selector) {
+      const {
+        CLASS_NAME_DEEPER_CHILDREN
+      } = this.constructor.ConfigConstants;
       const children = SelectorEngine.find(CLASS_NAME_DEEPER_CHILDREN, this._config.parent);
       // remove children if greater depth
       return SelectorEngine.find(selector, this._config.parent).filter(element => !children.includes(element));
     }
     _addAriaAndCollapsedClass(triggerArray, isOpen) {
+      const {
+        CLASS_NAME_COLLAPSED
+      } = this.constructor.ConfigConstants;
       if (!triggerArray.length) {
         return;
       }
@@ -233,6 +257,11 @@
     // Static
 
     static init() {
+      const ComponentClass = this;
+      const {
+        EVENT_CLICK_DATA_API,
+        SELECTOR_DATA_TOGGLE
+      } = this.ConfigConstants;
       if (this._isInitialized) {
         return;
       }
@@ -245,7 +274,7 @@
           event.preventDefault();
         }
         for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-          Collapse.getOrCreateInstance(element, {
+          ComponentClass.getOrCreateInstance(element, {
             toggle: false
           }).toggle();
         }
@@ -254,6 +283,10 @@
       this._isInitialized = true;
     }
     static destroy() {
+      const {
+        EVENT_CLICK_DATA_API,
+        SELECTOR_DATA_TOGGLE
+      } = this.ConfigConstants;
       if (!this._isInitialized) {
         return;
       }

@@ -46,6 +46,7 @@
   const CLASS_NAME_MODAL = 'modal';
   const CLASS_NAME_SHOW = 'show';
   const SELECTOR_TOOLTIP_INNER = '.tooltip-inner';
+  const SELECTOR_ARROW = '.tooltip-arrow';
   const SELECTOR_MODAL = `.${CLASS_NAME_MODAL}`;
   const EVENT_MODAL_HIDE = 'hide.bs.modal';
   const TRIGGER_HOVER = 'hover';
@@ -146,6 +147,39 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        CLASS_NAME_FADE,
+        CLASS_NAME_MODAL,
+        CLASS_NAME_SHOW,
+        SELECTOR_TOOLTIP_INNER,
+        SELECTOR_ARROW,
+        SELECTOR_MODAL,
+        EVENT_MODAL_HIDE,
+        TRIGGER_HOVER,
+        TRIGGER_FOCUS,
+        TRIGGER_CLICK,
+        TRIGGER_MANUAL,
+        EVENT_HIDE,
+        EVENT_HIDDEN,
+        EVENT_SHOW,
+        EVENT_SHOWN,
+        EVENT_INSERTED,
+        EVENT_CLICK,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT,
+        EVENT_MOUSEENTER,
+        EVENT_MOUSELEAVE,
+        ATTACHMENT_MAP: AttachmentMap
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     enable() {
@@ -169,6 +203,10 @@
     }
     dispose() {
       clearTimeout(this._timeout);
+      const {
+        SELECTOR_MODAL,
+        EVENT_MODAL_HIDE
+      } = this.constructor.ConfigConstants;
       EventHandler.off(this._element.closest(SELECTOR_MODAL), EVENT_MODAL_HIDE, this._hideModalHandler);
       if (this._element.getAttribute('data-bs-original-title')) {
         this._element.setAttribute('title', this._element.getAttribute('data-bs-original-title'));
@@ -183,6 +221,12 @@
       if (!(this._isWithContent() && this._isEnabled)) {
         return;
       }
+      const {
+        EVENT_SHOW,
+        EVENT_INSERTED,
+        CLASS_NAME_SHOW,
+        EVENT_SHOWN
+      } = this.constructor.ConfigConstants;
       const showEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_SHOW));
       const shadowRoot = index_js.findShadowRoot(this._element);
       const isInTheDom = (shadowRoot || this._element.ownerDocument.documentElement).contains(this._element);
@@ -226,6 +270,14 @@
       if (!this._isShown()) {
         return;
       }
+      const {
+        EVENT_HIDE,
+        CLASS_NAME_SHOW,
+        TRIGGER_CLICK,
+        TRIGGER_FOCUS,
+        TRIGGER_HOVER,
+        EVENT_HIDDEN
+      } = this.constructor.ConfigConstants;
       const hideEvent = EventHandler.trigger(this._element, this.constructor.eventName(EVENT_HIDE));
       if (hideEvent.defaultPrevented) {
         return;
@@ -274,6 +326,10 @@
       return this.tip;
     }
     _createTipElement(content) {
+      const {
+        CLASS_NAME_FADE,
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       const tip = this._getTemplateFactory(content).toHtml();
 
       // TODO: remove this check in v6
@@ -312,6 +368,9 @@
       return this._templateFactory;
     }
     _getContentForTemplate() {
+      const {
+        SELECTOR_TOOLTIP_INNER
+      } = this.constructor.ConfigConstants;
       return {
         [SELECTOR_TOOLTIP_INNER]: this._getTitle()
       };
@@ -325,14 +384,23 @@
       return this.constructor.getOrCreateInstance(event.delegateTarget, this._getDelegateConfig());
     }
     _isAnimated() {
+      const {
+        CLASS_NAME_FADE
+      } = this.constructor.ConfigConstants;
       return this._config.animation || this.tip && this.tip.classList.contains(CLASS_NAME_FADE);
     }
     _isShown() {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       return this.tip && this.tip.classList.contains(CLASS_NAME_SHOW);
     }
     _createPopper(tip) {
+      const {
+        ATTACHMENT_MAP
+      } = this.constructor.ConfigConstants;
       const placement = index_js.execute(this._config.placement, [this, tip, this._element]);
-      const attachment = AttachmentMap[placement.toUpperCase()];
+      const attachment = ATTACHMENT_MAP[placement.toUpperCase()];
       return Popper__namespace.createPopper(this._element, tip, this._getPopperConfig(attachment));
     }
     _getOffset() {
@@ -351,6 +419,9 @@
       return index_js.execute(arg, [this._element, this._element]);
     }
     _getPopperConfig(attachment) {
+      const {
+        SELECTOR_ARROW
+      } = this.constructor.ConfigConstants;
       const defaultBsPopperConfig = {
         placement: attachment,
         modifiers: [{
@@ -371,7 +442,7 @@
         }, {
           name: 'arrow',
           options: {
-            element: `.${this.constructor.NAME}-arrow`
+            element: SELECTOR_ARROW
           }
         }, {
           name: 'preSetPlacement',
@@ -390,9 +461,22 @@
       };
     }
     _setListeners() {
+      const {
+        EVENT_CLICK,
+        TRIGGER_CLICK,
+        TRIGGER_MANUAL,
+        TRIGGER_HOVER,
+        EVENT_MOUSEENTER,
+        EVENT_FOCUSIN,
+        EVENT_MOUSELEAVE,
+        EVENT_FOCUSOUT,
+        TRIGGER_FOCUS,
+        SELECTOR_MODAL,
+        EVENT_MODAL_HIDE
+      } = this.constructor.ConfigConstants;
       const triggers = this._config.trigger.split(' ');
       for (const trigger of triggers) {
-        if (trigger === 'click') {
+        if (trigger === TRIGGER_CLICK) {
           EventHandler.on(this._element, this.constructor.eventName(EVENT_CLICK), this._config.selector, event => {
             const context = this._initializeOnDelegatedTarget(event);
             context._activeTrigger[TRIGGER_CLICK] = !(context._isShown() && context._activeTrigger[TRIGGER_CLICK]);
@@ -494,6 +578,9 @@
       return config;
     }
     _getDelegateConfig() {
+      const {
+        TRIGGER_MANUAL
+      } = this.constructor.ConfigConstants;
       const config = {};
       for (const [key, value] of Object.entries(this._config)) {
         if (this.constructor.Default[key] !== value) {
@@ -501,7 +588,7 @@
         }
       }
       config.selector = false;
-      config.trigger = 'manual';
+      config.trigger = TRIGGER_MANUAL;
 
       // In the future can be replaced with:
       // const keysWithDifferentValues = Object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])

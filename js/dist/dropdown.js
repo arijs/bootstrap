@@ -57,6 +57,7 @@
     popperConfig: '(null|object|function)',
     reference: '(string|element|object)'
   };
+  const DOCUMENT_DATA_API_REGISTRY_KEY = '__bootstrapDropdownDataApiRegistry__';
 
   /**
    * Class definition
@@ -373,8 +374,9 @@
           continue;
         }
         const composedPath = event.composedPath();
+        const isToggleTarget = composedPath.includes(context._element) || context._element.contains(event.target);
         const isMenuTarget = composedPath.includes(context._menu);
-        if (composedPath.includes(context._element) || context._config.autoClose === 'inside' && !isMenuTarget || context._config.autoClose === 'outside' && isMenuTarget) {
+        if (isToggleTarget || context._config.autoClose === 'inside' && !isMenuTarget || context._config.autoClose === 'outside' && isMenuTarget) {
           continue;
         }
 
@@ -432,9 +434,19 @@
       }
     }
     static init() {
-      if (this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+      if (existingRegistration) {
+        this._clearMenusHandler = existingRegistration.clearMenusHandler;
+        this._keydownHandler = existingRegistration.keydownHandler;
+        this._toggleClickHandler = existingRegistration.toggleClickHandler;
+        this._isInitialized = true;
+        index_js.defineJQueryPlugin(this);
+        return;
+      }
+      this._isInitialized = false;
       const Class = this; // capture class for use in handler closures below
       const {
         SELECTOR_DATA_TOGGLE,
@@ -451,7 +463,7 @@
       this._clearMenusHandler = event => Class.clearMenus(event);
 
       // dataApiKeydownHandler is delegated: EventHandler calls fn.call(target, event)
-      // so `this` inside it is the matched DOM element — correct for DOM navigation.
+      // so `this` inside it is the matched DOM element - correct for DOM navigation.
       // We inject Class via the event so the handler can read the right ConfigConstants.
       this._keydownHandler = function (event) {
         event._bsDropdownClass = Class;
@@ -469,26 +481,40 @@
       EventHandler.on(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
       EventHandler.on(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      document[DOCUMENT_DATA_API_REGISTRY_KEY] = {
+        keydownEventName: EVENT_KEYDOWN_DATA_API,
+        keyupEventName: EVENT_KEYUP_DATA_API,
+        clickEventName: EVENT_CLICK_DATA_API,
+        toggleSelector: SELECTOR_DATA_TOGGLE,
+        menuSelector: SELECTOR_MENU,
+        clearMenusHandler: this._clearMenusHandler,
+        keydownHandler: this._keydownHandler,
+        toggleClickHandler: this._toggleClickHandler
+      };
       index_js.defineJQueryPlugin(this);
       this._isInitialized = true;
     }
     static destroy() {
-      if (!this._isInitialized) {
+      if (typeof document === 'undefined') {
         return;
       }
-      const {
-        SELECTOR_DATA_TOGGLE,
-        SELECTOR_MENU,
-        DATA_API_KEY
-      } = this.ConfigConstants;
-      const EVENT_CLICK_DATA_API = `click${this.EVENT_KEY}${DATA_API_KEY}`;
-      const EVENT_KEYDOWN_DATA_API = `keydown${this.EVENT_KEY}${DATA_API_KEY}`;
-      const EVENT_KEYUP_DATA_API = `keyup${this.EVENT_KEY}${DATA_API_KEY}`;
-      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE, this._keydownHandler);
-      EventHandler.off(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, this._keydownHandler);
-      EventHandler.off(document, EVENT_CLICK_DATA_API, this._clearMenusHandler);
-      EventHandler.off(document, EVENT_KEYUP_DATA_API, this._clearMenusHandler);
-      EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._toggleClickHandler);
+      const existingRegistration = document[DOCUMENT_DATA_API_REGISTRY_KEY];
+      if (!existingRegistration && !this._isInitialized) {
+        return;
+      }
+      if (!existingRegistration) {
+        this._clearMenusHandler = null;
+        this._keydownHandler = null;
+        this._toggleClickHandler = null;
+        this._isInitialized = false;
+        return;
+      }
+      EventHandler.off(document, existingRegistration.keydownEventName, existingRegistration.toggleSelector, existingRegistration.keydownHandler);
+      EventHandler.off(document, existingRegistration.keydownEventName, existingRegistration.menuSelector, existingRegistration.keydownHandler);
+      EventHandler.off(document, existingRegistration.clickEventName, existingRegistration.clearMenusHandler);
+      EventHandler.off(document, existingRegistration.keyupEventName, existingRegistration.clearMenusHandler);
+      EventHandler.off(document, existingRegistration.clickEventName, existingRegistration.toggleSelector, existingRegistration.toggleClickHandler);
+      delete document[DOCUMENT_DATA_API_REGISTRY_KEY];
       this._clearMenusHandler = null;
       this._keydownHandler = null;
       this._toggleClickHandler = null;

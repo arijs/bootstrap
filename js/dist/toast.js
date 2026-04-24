@@ -70,9 +70,40 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      const defaults = {
+        EVENT_MOUSEOVER,
+        EVENT_MOUSEOUT,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT,
+        EVENT_HIDE,
+        EVENT_HIDDEN,
+        EVENT_SHOW,
+        EVENT_SHOWN,
+        CLASS_NAME_FADE,
+        CLASS_NAME_HIDE,
+        CLASS_NAME_SHOW,
+        CLASS_NAME_SHOWING
+      };
+      return {
+        ...defaults,
+        ...overrides
+      };
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
 
     // Public
     show() {
+      const {
+        EVENT_SHOW,
+        CLASS_NAME_FADE,
+        CLASS_NAME_SHOWING,
+        EVENT_SHOWN,
+        CLASS_NAME_HIDE,
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       const showEvent = EventHandler.trigger(this._element, EVENT_SHOW);
       if (showEvent.defaultPrevented) {
         return;
@@ -92,6 +123,13 @@
       this._queueCallback(complete, this._element, this._config.animation);
     }
     hide() {
+      const {
+        EVENT_HIDE,
+        CLASS_NAME_HIDE,
+        CLASS_NAME_SHOWING,
+        CLASS_NAME_SHOW,
+        EVENT_HIDDEN
+      } = this.constructor.ConfigConstants;
       if (!this.isShown()) {
         return;
       }
@@ -108,6 +146,9 @@
       this._queueCallback(complete, this._element, this._config.animation);
     }
     dispose() {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       this._clearTimeout();
       if (this.isShown()) {
         this._element.classList.remove(CLASS_NAME_SHOW);
@@ -115,6 +156,9 @@
       super.dispose();
     }
     isShown() {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       return this._element.classList.contains(CLASS_NAME_SHOW);
     }
 
@@ -131,15 +175,25 @@
       }, this._config.delay);
     }
     _onInteraction(event, isInteracting) {
+      const {
+        EVENT_MOUSEOVER,
+        EVENT_MOUSEOUT,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT
+      } = this.constructor.ConfigConstants;
+      const typeMouseOver = EVENT_MOUSEOVER.split('.')[0];
+      const typeMouseOut = EVENT_MOUSEOUT.split('.')[0];
+      const typeFocusIn = EVENT_FOCUSIN.split('.')[0];
+      const typeFocusOut = EVENT_FOCUSOUT.split('.')[0];
       switch (event.type) {
-        case 'mouseover':
-        case 'mouseout':
+        case typeMouseOver:
+        case typeMouseOut:
           {
             this._hasMouseInteraction = isInteracting;
             break;
           }
-        case 'focusin':
-        case 'focusout':
+        case typeFocusIn:
+        case typeFocusOut:
           {
             this._hasKeyboardInteraction = isInteracting;
             break;
@@ -156,6 +210,12 @@
       this._maybeScheduleHide();
     }
     _setListeners() {
+      const {
+        EVENT_MOUSEOVER,
+        EVENT_MOUSEOUT,
+        EVENT_FOCUSIN,
+        EVENT_FOCUSOUT
+      } = this.constructor.ConfigConstants;
       EventHandler.on(this._element, EVENT_MOUSEOVER, event => this._onInteraction(event, true));
       EventHandler.on(this._element, EVENT_MOUSEOUT, event => this._onInteraction(event, false));
       EventHandler.on(this._element, EVENT_FOCUSIN, event => this._onInteraction(event, true));

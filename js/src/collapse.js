@@ -21,26 +21,6 @@ import {
 const NAME = 'collapse'
 const DATA_KEY = 'bs.collapse'
 const EVENT_KEY = `.${DATA_KEY}`
-const DATA_API_KEY = '.data-api'
-
-const EVENT_SHOW = `show${EVENT_KEY}`
-const EVENT_SHOWN = `shown${EVENT_KEY}`
-const EVENT_HIDE = `hide${EVENT_KEY}`
-const EVENT_HIDDEN = `hidden${EVENT_KEY}`
-const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`
-
-const CLASS_NAME_SHOW = 'show'
-const CLASS_NAME_COLLAPSE = 'collapse'
-const CLASS_NAME_COLLAPSING = 'collapsing'
-const CLASS_NAME_COLLAPSED = 'collapsed'
-const CLASS_NAME_DEEPER_CHILDREN = `:scope .${CLASS_NAME_COLLAPSE} .${CLASS_NAME_COLLAPSE}`
-const CLASS_NAME_HORIZONTAL = 'collapse-horizontal'
-
-const WIDTH = 'width'
-const HEIGHT = 'height'
-
-const SELECTOR_ACTIVES = '.collapse.show, .collapse.collapsing'
-const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="collapse"]'
 
 const Default = {
   parent: null,
@@ -59,6 +39,8 @@ const DefaultType = {
 class Collapse extends BaseComponent {
   constructor(element, config) {
     super(element, config)
+
+    const { SELECTOR_DATA_TOGGLE } = this.constructor.ConfigConstants
 
     this._isTransitioning = false
     this._triggerArray = []
@@ -100,25 +82,32 @@ class Collapse extends BaseComponent {
   }
 
   static getConfigConstants(overrides = {}) {
-    const defaults = {
-      EVENT_SHOW,
-      EVENT_SHOWN,
-      EVENT_HIDE,
-      EVENT_HIDDEN,
-      EVENT_CLICK_DATA_API,
-      CLASS_NAME_SHOW,
-      CLASS_NAME_COLLAPSE,
-      CLASS_NAME_COLLAPSING,
-      CLASS_NAME_COLLAPSED,
-      CLASS_NAME_DEEPER_CHILDREN,
-      CLASS_NAME_HORIZONTAL,
-      WIDTH,
-      HEIGHT,
-      SELECTOR_ACTIVES,
-      SELECTOR_DATA_TOGGLE,
-      DATA_API_KEY
+    const values = {
+      EVENT_SHOW: `show${EVENT_KEY}`,
+      EVENT_SHOWN: `shown${EVENT_KEY}`,
+      EVENT_HIDE: `hide${EVENT_KEY}`,
+      EVENT_HIDDEN: `hidden${EVENT_KEY}`,
+      EVENT_CLICK_DATA_API: `click${EVENT_KEY}.data-api`,
+      CLASS_NAME_SHOW: 'show',
+      CLASS_NAME_COLLAPSE: 'collapse',
+      CLASS_NAME_COLLAPSING: 'collapsing',
+      CLASS_NAME_COLLAPSED: 'collapsed',
+      // CLASS_NAME_DEEPER_CHILDREN:
+      // intentionally undefined so it is generated unless
+      // specifically provided by the user
+      CLASS_NAME_DEEPER_CHILDREN: undefined,
+      CLASS_NAME_HORIZONTAL: 'collapse-horizontal',
+      WIDTH: 'width',
+      HEIGHT: 'height',
+      // SELECTOR_ACTIVES: same as above
+      SELECTOR_ACTIVES: undefined,
+      SELECTOR_DATA_TOGGLE: '[data-bs-toggle="collapse"]',
+      DATA_API_KEY: '.data-api',
+      ...overrides,
     }
-    return { ...defaults, ...overrides }
+    values.CLASS_NAME_DEEPER_CHILDREN ??= `:scope .${values.CLASS_NAME_COLLAPSE} .${values.CLASS_NAME_COLLAPSE}`
+    values.SELECTOR_ACTIVES ??= `.${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_SHOW}, .${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_COLLAPSING}`
+    return values
   }
 
   static get ConfigConstants() {
@@ -135,6 +124,15 @@ class Collapse extends BaseComponent {
   }
 
   show() {
+    const {
+      SELECTOR_ACTIVES,
+      EVENT_SHOW,
+      CLASS_NAME_COLLAPSE,
+      CLASS_NAME_COLLAPSING,
+      EVENT_SHOWN,
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants
+
     if (this._isTransitioning || this._isShown()) {
       return
     }
@@ -145,7 +143,7 @@ class Collapse extends BaseComponent {
     if (this._config.parent) {
       activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES)
         .filter(element => element !== this._element)
-        .map(element => Collapse.getOrCreateInstance(element, { toggle: false }))
+        .map(element => this.constructor.getOrCreateInstance(element, { toggle: false }))
     }
 
     if (activeChildren.length && activeChildren[0]._isTransitioning) {
@@ -190,6 +188,14 @@ class Collapse extends BaseComponent {
   }
 
   hide() {
+    const {
+      EVENT_HIDE,
+      CLASS_NAME_COLLAPSING,
+      CLASS_NAME_COLLAPSE,
+      CLASS_NAME_SHOW,
+      EVENT_HIDDEN
+    } = this.constructor.ConfigConstants
+
     if (this._isTransitioning || !this._isShown()) {
       return
     }
@@ -232,6 +238,7 @@ class Collapse extends BaseComponent {
 
   // Private
   _isShown(element = this._element) {
+    const { CLASS_NAME_SHOW } = this.constructor.ConfigConstants
     return element.classList.contains(CLASS_NAME_SHOW)
   }
 
@@ -242,10 +249,13 @@ class Collapse extends BaseComponent {
   }
 
   _getDimension() {
+    const { CLASS_NAME_HORIZONTAL, WIDTH, HEIGHT } = this.constructor.ConfigConstants
     return this._element.classList.contains(CLASS_NAME_HORIZONTAL) ? WIDTH : HEIGHT
   }
 
   _initializeChildren() {
+    const { SELECTOR_DATA_TOGGLE } = this.constructor.ConfigConstants
+
     if (!this._config.parent) {
       return
     }
@@ -262,12 +272,15 @@ class Collapse extends BaseComponent {
   }
 
   _getFirstLevelChildren(selector) {
+    const { CLASS_NAME_DEEPER_CHILDREN } = this.constructor.ConfigConstants
     const children = SelectorEngine.find(CLASS_NAME_DEEPER_CHILDREN, this._config.parent)
     // remove children if greater depth
     return SelectorEngine.find(selector, this._config.parent).filter(element => !children.includes(element))
   }
 
   _addAriaAndCollapsedClass(triggerArray, isOpen) {
+    const { CLASS_NAME_COLLAPSED } = this.constructor.ConfigConstants
+
     if (!triggerArray.length) {
       return
     }
@@ -282,6 +295,9 @@ class Collapse extends BaseComponent {
   static _isInitialized = false
 
   static init() {
+    const ComponentClass = this
+    const { EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE } = this.ConfigConstants
+
     if (this._isInitialized) {
       return
     }
@@ -297,7 +313,7 @@ class Collapse extends BaseComponent {
       }
 
       for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-        Collapse.getOrCreateInstance(element, { toggle: false }).toggle()
+        ComponentClass.getOrCreateInstance(element, { toggle: false }).toggle()
       }
     }
 
@@ -306,6 +322,8 @@ class Collapse extends BaseComponent {
   }
 
   static destroy() {
+    const { EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE } = this.ConfigConstants
+
     if (!this._isInitialized) {
       return
     }

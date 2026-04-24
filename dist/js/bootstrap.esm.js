@@ -921,7 +921,7 @@ const EVENT_KEY$9 = `.${DATA_KEY$8}`;
 const EVENT_CLOSE = `close${EVENT_KEY$9}`;
 const EVENT_CLOSED = `closed${EVENT_KEY$9}`;
 const CLASS_NAME_FADE$5 = 'fade';
-const CLASS_NAME_SHOW$7 = 'show';
+const CLASS_NAME_SHOW$6 = 'show';
 
 /**
  * Class definition
@@ -937,7 +937,7 @@ class Alert extends BaseComponent {
       EVENT_CLOSE,
       EVENT_CLOSED,
       CLASS_NAME_FADE: CLASS_NAME_FADE$5,
-      CLASS_NAME_SHOW: CLASS_NAME_SHOW$7
+      CLASS_NAME_SHOW: CLASS_NAME_SHOW$6
     };
     return {
       ...defaults,
@@ -1257,7 +1257,7 @@ class Swipe extends Config {
 const NAME$c = 'carousel';
 const DATA_KEY$7 = 'bs.carousel';
 const EVENT_KEY$7 = `.${DATA_KEY$7}`;
-const DATA_API_KEY$4 = '.data-api';
+const DATA_API_KEY$3 = '.data-api';
 const ARROW_LEFT_KEY$1 = 'ArrowLeft';
 const ARROW_RIGHT_KEY$1 = 'ArrowRight';
 const TOUCHEVENT_COMPAT_WAIT = 500; // Time for mouse compat events to fire after touch
@@ -1272,8 +1272,8 @@ const EVENT_KEYDOWN$1 = `keydown${EVENT_KEY$7}`;
 const EVENT_MOUSEENTER$1 = `mouseenter${EVENT_KEY$7}`;
 const EVENT_MOUSELEAVE$1 = `mouseleave${EVENT_KEY$7}`;
 const EVENT_DRAG_START = `dragstart${EVENT_KEY$7}`;
-const EVENT_LOAD_DATA_API$3 = `load${EVENT_KEY$7}${DATA_API_KEY$4}`;
-const EVENT_CLICK_DATA_API$4 = `click${EVENT_KEY$7}${DATA_API_KEY$4}`;
+const EVENT_LOAD_DATA_API$3 = `load${EVENT_KEY$7}${DATA_API_KEY$3}`;
+const EVENT_CLICK_DATA_API$3 = `click${EVENT_KEY$7}${DATA_API_KEY$3}`;
 const CLASS_NAME_CAROUSEL = 'carousel';
 const CLASS_NAME_ACTIVE$2 = 'active';
 const CLASS_NAME_SLIDE = 'slide';
@@ -1355,7 +1355,7 @@ class Carousel extends BaseComponent {
       EVENT_MOUSELEAVE: EVENT_MOUSELEAVE$1,
       EVENT_DRAG_START,
       EVENT_LOAD_DATA_API: EVENT_LOAD_DATA_API$3,
-      EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$4,
+      EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$3,
       CLASS_NAME_CAROUSEL,
       CLASS_NAME_ACTIVE: CLASS_NAME_ACTIVE$2,
       CLASS_NAME_SLIDE,
@@ -1371,7 +1371,7 @@ class Carousel extends BaseComponent {
       SELECTOR_DATA_SLIDE,
       SELECTOR_DATA_RIDE,
       KEY_TO_DIRECTION,
-      DATA_API_KEY: DATA_API_KEY$4
+      DATA_API_KEY: DATA_API_KEY$3
     };
     return {
       ...defaults,
@@ -1637,7 +1637,7 @@ class Carousel extends BaseComponent {
         Carousel.getOrCreateInstance(carousel);
       }
     };
-    EventHandler.on(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_SLIDE, this._clickHandler);
+    EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_SLIDE, this._clickHandler);
     EventHandler.on(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
     this._isInitialized = true;
   }
@@ -1645,7 +1645,7 @@ class Carousel extends BaseComponent {
     if (!this._isInitialized) {
       return;
     }
-    EventHandler.off(document, EVENT_CLICK_DATA_API$4, SELECTOR_DATA_SLIDE, this._clickHandler);
+    EventHandler.off(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_SLIDE, this._clickHandler);
     EventHandler.off(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
     this._isInitialized = false;
   }
@@ -1695,22 +1695,6 @@ defineJQueryPlugin(Carousel);
 const NAME$b = 'collapse';
 const DATA_KEY$6 = 'bs.collapse';
 const EVENT_KEY$6 = `.${DATA_KEY$6}`;
-const DATA_API_KEY$3 = '.data-api';
-const EVENT_SHOW$5 = `show${EVENT_KEY$6}`;
-const EVENT_SHOWN$5 = `shown${EVENT_KEY$6}`;
-const EVENT_HIDE$5 = `hide${EVENT_KEY$6}`;
-const EVENT_HIDDEN$5 = `hidden${EVENT_KEY$6}`;
-const EVENT_CLICK_DATA_API$3 = `click${EVENT_KEY$6}${DATA_API_KEY$3}`;
-const CLASS_NAME_SHOW$6 = 'show';
-const CLASS_NAME_COLLAPSE = 'collapse';
-const CLASS_NAME_COLLAPSING = 'collapsing';
-const CLASS_NAME_COLLAPSED = 'collapsed';
-const CLASS_NAME_DEEPER_CHILDREN = `:scope .${CLASS_NAME_COLLAPSE} .${CLASS_NAME_COLLAPSE}`;
-const CLASS_NAME_HORIZONTAL = 'collapse-horizontal';
-const WIDTH = 'width';
-const HEIGHT = 'height';
-const SELECTOR_ACTIVES = '.collapse.show, .collapse.collapsing';
-const SELECTOR_DATA_TOGGLE$3 = '[data-bs-toggle="collapse"]';
 const Default$a = {
   parent: null,
   toggle: true
@@ -1727,9 +1711,12 @@ const DefaultType$a = {
 class Collapse extends BaseComponent {
   constructor(element, config) {
     super(element, config);
+    const {
+      SELECTOR_DATA_TOGGLE
+    } = this.constructor.ConfigConstants;
     this._isTransitioning = false;
     this._triggerArray = [];
-    const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE$3);
+    const toggleList = SelectorEngine.find(SELECTOR_DATA_TOGGLE);
     for (const elem of toggleList) {
       const selector = SelectorEngine.getSelectorFromElement(elem);
       const filterElement = SelectorEngine.find(selector).filter(foundElement => foundElement === this._element);
@@ -1757,28 +1744,33 @@ class Collapse extends BaseComponent {
     return NAME$b;
   }
   static getConfigConstants(overrides = {}) {
-    const defaults = {
-      EVENT_SHOW: EVENT_SHOW$5,
-      EVENT_SHOWN: EVENT_SHOWN$5,
-      EVENT_HIDE: EVENT_HIDE$5,
-      EVENT_HIDDEN: EVENT_HIDDEN$5,
-      EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$3,
-      CLASS_NAME_SHOW: CLASS_NAME_SHOW$6,
-      CLASS_NAME_COLLAPSE,
-      CLASS_NAME_COLLAPSING,
-      CLASS_NAME_COLLAPSED,
-      CLASS_NAME_DEEPER_CHILDREN,
-      CLASS_NAME_HORIZONTAL,
-      WIDTH,
-      HEIGHT,
-      SELECTOR_ACTIVES,
-      SELECTOR_DATA_TOGGLE: SELECTOR_DATA_TOGGLE$3,
-      DATA_API_KEY: DATA_API_KEY$3
-    };
-    return {
-      ...defaults,
+    var _values$CLASS_NAME_DE, _values$SELECTOR_ACTI;
+    const values = {
+      EVENT_SHOW: `show${EVENT_KEY$6}`,
+      EVENT_SHOWN: `shown${EVENT_KEY$6}`,
+      EVENT_HIDE: `hide${EVENT_KEY$6}`,
+      EVENT_HIDDEN: `hidden${EVENT_KEY$6}`,
+      EVENT_CLICK_DATA_API: `click${EVENT_KEY$6}.data-api`,
+      CLASS_NAME_SHOW: 'show',
+      CLASS_NAME_COLLAPSE: 'collapse',
+      CLASS_NAME_COLLAPSING: 'collapsing',
+      CLASS_NAME_COLLAPSED: 'collapsed',
+      // CLASS_NAME_DEEPER_CHILDREN:
+      // intentionally undefined so it is generated unless
+      // specifically provided by the user
+      CLASS_NAME_DEEPER_CHILDREN: undefined,
+      CLASS_NAME_HORIZONTAL: 'collapse-horizontal',
+      WIDTH: 'width',
+      HEIGHT: 'height',
+      // SELECTOR_ACTIVES: same as above
+      SELECTOR_ACTIVES: undefined,
+      SELECTOR_DATA_TOGGLE: '[data-bs-toggle="collapse"]',
+      DATA_API_KEY: '.data-api',
       ...overrides
     };
+    (_values$CLASS_NAME_DE = values.CLASS_NAME_DEEPER_CHILDREN) != null ? _values$CLASS_NAME_DE : values.CLASS_NAME_DEEPER_CHILDREN = `:scope .${values.CLASS_NAME_COLLAPSE} .${values.CLASS_NAME_COLLAPSE}`;
+    (_values$SELECTOR_ACTI = values.SELECTOR_ACTIVES) != null ? _values$SELECTOR_ACTI : values.SELECTOR_ACTIVES = `.${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_SHOW}, .${values.CLASS_NAME_COLLAPSE}.${values.CLASS_NAME_COLLAPSING}`;
+    return values;
   }
   static get ConfigConstants() {
     return this.getConfigConstants();
@@ -1793,6 +1785,14 @@ class Collapse extends BaseComponent {
     }
   }
   show() {
+    const {
+      SELECTOR_ACTIVES,
+      EVENT_SHOW,
+      CLASS_NAME_COLLAPSE,
+      CLASS_NAME_COLLAPSING,
+      EVENT_SHOWN,
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
     if (this._isTransitioning || this._isShown()) {
       return;
     }
@@ -1800,14 +1800,14 @@ class Collapse extends BaseComponent {
 
     // find active children
     if (this._config.parent) {
-      activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES).filter(element => element !== this._element).map(element => Collapse.getOrCreateInstance(element, {
+      activeChildren = this._getFirstLevelChildren(SELECTOR_ACTIVES).filter(element => element !== this._element).map(element => this.constructor.getOrCreateInstance(element, {
         toggle: false
       }));
     }
     if (activeChildren.length && activeChildren[0]._isTransitioning) {
       return;
     }
-    const startEvent = EventHandler.trigger(this._element, EVENT_SHOW$5);
+    const startEvent = EventHandler.trigger(this._element, EVENT_SHOW);
     if (startEvent.defaultPrevented) {
       return;
     }
@@ -1823,9 +1823,9 @@ class Collapse extends BaseComponent {
     const complete = () => {
       this._isTransitioning = false;
       this._element.classList.remove(CLASS_NAME_COLLAPSING);
-      this._element.classList.add(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$6);
+      this._element.classList.add(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW);
       this._element.style[dimension] = '';
-      EventHandler.trigger(this._element, EVENT_SHOWN$5);
+      EventHandler.trigger(this._element, EVENT_SHOWN);
     };
     const capitalizedDimension = dimension[0].toUpperCase() + dimension.slice(1);
     const scrollSize = `scroll${capitalizedDimension}`;
@@ -1833,10 +1833,17 @@ class Collapse extends BaseComponent {
     this._element.style[dimension] = `${this._element[scrollSize]}px`;
   }
   hide() {
+    const {
+      EVENT_HIDE,
+      CLASS_NAME_COLLAPSING,
+      CLASS_NAME_COLLAPSE,
+      CLASS_NAME_SHOW,
+      EVENT_HIDDEN
+    } = this.constructor.ConfigConstants;
     if (this._isTransitioning || !this._isShown()) {
       return;
     }
-    const startEvent = EventHandler.trigger(this._element, EVENT_HIDE$5);
+    const startEvent = EventHandler.trigger(this._element, EVENT_HIDE);
     if (startEvent.defaultPrevented) {
       return;
     }
@@ -1844,7 +1851,7 @@ class Collapse extends BaseComponent {
     this._element.style[dimension] = `${this._element.getBoundingClientRect()[dimension]}px`;
     reflow(this._element);
     this._element.classList.add(CLASS_NAME_COLLAPSING);
-    this._element.classList.remove(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW$6);
+    this._element.classList.remove(CLASS_NAME_COLLAPSE, CLASS_NAME_SHOW);
     for (const trigger of this._triggerArray) {
       const element = SelectorEngine.getElementFromSelector(trigger);
       if (element && !this._isShown(element)) {
@@ -1856,7 +1863,7 @@ class Collapse extends BaseComponent {
       this._isTransitioning = false;
       this._element.classList.remove(CLASS_NAME_COLLAPSING);
       this._element.classList.add(CLASS_NAME_COLLAPSE);
-      EventHandler.trigger(this._element, EVENT_HIDDEN$5);
+      EventHandler.trigger(this._element, EVENT_HIDDEN);
     };
     this._element.style[dimension] = '';
     this._queueCallback(complete, this._element, true);
@@ -1864,7 +1871,10 @@ class Collapse extends BaseComponent {
 
   // Private
   _isShown(element = this._element) {
-    return element.classList.contains(CLASS_NAME_SHOW$6);
+    const {
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
+    return element.classList.contains(CLASS_NAME_SHOW);
   }
   _configAfterMerge(config) {
     config.toggle = Boolean(config.toggle); // Coerce string values
@@ -1872,13 +1882,21 @@ class Collapse extends BaseComponent {
     return config;
   }
   _getDimension() {
+    const {
+      CLASS_NAME_HORIZONTAL,
+      WIDTH,
+      HEIGHT
+    } = this.constructor.ConfigConstants;
     return this._element.classList.contains(CLASS_NAME_HORIZONTAL) ? WIDTH : HEIGHT;
   }
   _initializeChildren() {
+    const {
+      SELECTOR_DATA_TOGGLE
+    } = this.constructor.ConfigConstants;
     if (!this._config.parent) {
       return;
     }
-    const children = this._getFirstLevelChildren(SELECTOR_DATA_TOGGLE$3);
+    const children = this._getFirstLevelChildren(SELECTOR_DATA_TOGGLE);
     for (const element of children) {
       const selected = SelectorEngine.getElementFromSelector(element);
       if (selected) {
@@ -1887,11 +1905,17 @@ class Collapse extends BaseComponent {
     }
   }
   _getFirstLevelChildren(selector) {
+    const {
+      CLASS_NAME_DEEPER_CHILDREN
+    } = this.constructor.ConfigConstants;
     const children = SelectorEngine.find(CLASS_NAME_DEEPER_CHILDREN, this._config.parent);
     // remove children if greater depth
     return SelectorEngine.find(selector, this._config.parent).filter(element => !children.includes(element));
   }
   _addAriaAndCollapsedClass(triggerArray, isOpen) {
+    const {
+      CLASS_NAME_COLLAPSED
+    } = this.constructor.ConfigConstants;
     if (!triggerArray.length) {
       return;
     }
@@ -1904,6 +1928,11 @@ class Collapse extends BaseComponent {
   // Static
 
   static init() {
+    const ComponentClass = this;
+    const {
+      EVENT_CLICK_DATA_API,
+      SELECTOR_DATA_TOGGLE
+    } = this.ConfigConstants;
     if (this._isInitialized) {
       return;
     }
@@ -1916,19 +1945,23 @@ class Collapse extends BaseComponent {
         event.preventDefault();
       }
       for (const element of SelectorEngine.getMultipleElementsFromSelector(this)) {
-        Collapse.getOrCreateInstance(element, {
+        ComponentClass.getOrCreateInstance(element, {
           toggle: false
         }).toggle();
       }
     };
-    EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, this._clickHandler);
+    EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
     this._isInitialized = true;
   }
   static destroy() {
+    const {
+      EVENT_CLICK_DATA_API,
+      SELECTOR_DATA_TOGGLE
+    } = this.ConfigConstants;
     if (!this._isInitialized) {
       return;
     }
-    EventHandler.off(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, this._clickHandler);
+    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
     this._isInitialized = false;
   }
   static jQueryInterface(config) {
