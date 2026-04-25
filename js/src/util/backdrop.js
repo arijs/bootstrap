@@ -6,6 +6,7 @@
  */
 
 import EventHandler from '../dom/event-handler.js'
+import BaseComponent from '../base-component.js'
 import Config from './config.js'
 import {
   execute, executeAfterTransition, getElement, reflow
@@ -16,9 +17,6 @@ import {
  */
 
 const NAME = 'backdrop'
-const CLASS_NAME_FADE = 'fade'
-const CLASS_NAME_SHOW = 'show'
-const EVENT_MOUSEDOWN = `mousedown.bs.${NAME}`
 
 const Default = {
   className: 'modal-backdrop',
@@ -61,8 +59,31 @@ class Backdrop extends Config {
     return NAME
   }
 
+  static getConfigConstants(overrides = {}) {
+    const values = {
+      CLASS_NAME_FADE: 'fade',
+      CLASS_NAME_SHOW: 'show',
+      EVENT_MOUSEDOWN: undefined,
+      ...overrides
+    }
+
+    values.EVENT_MOUSEDOWN ??= `mousedown.bs.${NAME}`
+
+    return values
+  }
+
+  static get ConfigConstants() {
+    return this.getConfigConstants()
+  }
+
+  static extendDefaultConfig(overrides = {}) {
+    return BaseComponent.extendDefaultConfig.call(this, overrides)
+  }
+
   // Public
   show(callback) {
+    const { CLASS_NAME_SHOW } = this.constructor.ConfigConstants
+
     if (!this._config.isVisible) {
       execute(callback)
       return
@@ -83,6 +104,8 @@ class Backdrop extends Config {
   }
 
   hide(callback) {
+    const { CLASS_NAME_SHOW } = this.constructor.ConfigConstants
+
     if (!this._config.isVisible) {
       execute(callback)
       return
@@ -97,6 +120,8 @@ class Backdrop extends Config {
   }
 
   dispose() {
+    const { EVENT_MOUSEDOWN } = this.constructor.ConfigConstants
+
     if (!this._isAppended) {
       return
     }
@@ -109,6 +134,8 @@ class Backdrop extends Config {
 
   // Private
   _getElement() {
+    const { CLASS_NAME_FADE } = this.constructor.ConfigConstants
+
     if (!this._element) {
       const backdrop = document.createElement('div')
       backdrop.className = this._config.className
@@ -129,6 +156,8 @@ class Backdrop extends Config {
   }
 
   _append() {
+    const { EVENT_MOUSEDOWN } = this.constructor.ConfigConstants
+
     if (this._isAppended) {
       return
     }

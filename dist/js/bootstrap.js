@@ -953,8 +953,8 @@
   const EVENT_KEY$9 = `.${DATA_KEY$8}`;
   const EVENT_CLOSE = `close${EVENT_KEY$9}`;
   const EVENT_CLOSED = `closed${EVENT_KEY$9}`;
-  const CLASS_NAME_FADE$4 = 'fade';
-  const CLASS_NAME_SHOW$5 = 'show';
+  const CLASS_NAME_FADE$3 = 'fade';
+  const CLASS_NAME_SHOW$4 = 'show';
 
   /**
    * Class definition
@@ -969,8 +969,8 @@
       const defaults = {
         EVENT_CLOSE,
         EVENT_CLOSED,
-        CLASS_NAME_FADE: CLASS_NAME_FADE$4,
-        CLASS_NAME_SHOW: CLASS_NAME_SHOW$5
+        CLASS_NAME_FADE: CLASS_NAME_FADE$3,
+        CLASS_NAME_SHOW: CLASS_NAME_SHOW$4
       };
       return {
         ...defaults,
@@ -2564,9 +2564,6 @@
    */
 
   const NAME$9 = 'backdrop';
-  const CLASS_NAME_FADE$3 = 'fade';
-  const CLASS_NAME_SHOW$4 = 'show';
-  const EVENT_MOUSEDOWN = `mousedown.bs.${NAME$9}`;
   const Default$8 = {
     className: 'modal-backdrop',
     clickCallback: null,
@@ -2605,9 +2602,29 @@
     static get NAME() {
       return NAME$9;
     }
+    static getConfigConstants(overrides = {}) {
+      var _values$EVENT_MOUSEDO;
+      const values = {
+        CLASS_NAME_FADE: 'fade',
+        CLASS_NAME_SHOW: 'show',
+        EVENT_MOUSEDOWN: undefined,
+        ...overrides
+      };
+      (_values$EVENT_MOUSEDO = values.EVENT_MOUSEDOWN) != null ? _values$EVENT_MOUSEDO : values.EVENT_MOUSEDOWN = `mousedown.bs.${NAME$9}`;
+      return values;
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
+    static extendDefaultConfig(overrides = {}) {
+      return BaseComponent.extendDefaultConfig.call(this, overrides);
+    }
 
     // Public
     show(callback) {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       if (!this._config.isVisible) {
         execute(callback);
         return;
@@ -2617,23 +2634,29 @@
       if (this._config.isAnimated) {
         reflow(element);
       }
-      element.classList.add(CLASS_NAME_SHOW$4);
+      element.classList.add(CLASS_NAME_SHOW);
       this._emulateAnimation(() => {
         execute(callback);
       });
     }
     hide(callback) {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       if (!this._config.isVisible) {
         execute(callback);
         return;
       }
-      this._getElement().classList.remove(CLASS_NAME_SHOW$4);
+      this._getElement().classList.remove(CLASS_NAME_SHOW);
       this._emulateAnimation(() => {
         this.dispose();
         execute(callback);
       });
     }
     dispose() {
+      const {
+        EVENT_MOUSEDOWN
+      } = this.constructor.ConfigConstants;
       if (!this._isAppended) {
         return;
       }
@@ -2644,11 +2667,14 @@
 
     // Private
     _getElement() {
+      const {
+        CLASS_NAME_FADE
+      } = this.constructor.ConfigConstants;
       if (!this._element) {
         const backdrop = document.createElement('div');
         backdrop.className = this._config.className;
         if (this._config.isAnimated) {
-          backdrop.classList.add(CLASS_NAME_FADE$3);
+          backdrop.classList.add(CLASS_NAME_FADE);
         }
         this._element = backdrop;
       }
@@ -2660,6 +2686,9 @@
       return config;
     }
     _append() {
+      const {
+        EVENT_MOUSEDOWN
+      } = this.constructor.ConfigConstants;
       if (this._isAppended) {
         return;
       }

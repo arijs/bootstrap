@@ -4,10 +4,10 @@
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('../dom/event-handler.js'), require('./config.js'), require('./index.js')) :
-  typeof define === 'function' && define.amd ? define(['../dom/event-handler', './config', './index'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Backdrop = factory(global.EventHandler, global.Config, global.Index));
-})(this, (function (EventHandler, Config, index_js) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('../dom/event-handler.js'), require('../base-component.js'), require('./config.js'), require('./index.js')) :
+  typeof define === 'function' && define.amd ? define(['../dom/event-handler', '../base-component', './config', './index'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Backdrop = factory(global.EventHandler, global.BaseComponent, global.Config, global.Index));
+})(this, (function (EventHandler, BaseComponent, Config, index_js) { 'use strict';
 
   /**
    * --------------------------------------------------------------------------
@@ -22,9 +22,6 @@
    */
 
   const NAME = 'backdrop';
-  const CLASS_NAME_FADE = 'fade';
-  const CLASS_NAME_SHOW = 'show';
-  const EVENT_MOUSEDOWN = `mousedown.bs.${NAME}`;
   const Default = {
     className: 'modal-backdrop',
     clickCallback: null,
@@ -63,9 +60,29 @@
     static get NAME() {
       return NAME;
     }
+    static getConfigConstants(overrides = {}) {
+      var _values$EVENT_MOUSEDO;
+      const values = {
+        CLASS_NAME_FADE: 'fade',
+        CLASS_NAME_SHOW: 'show',
+        EVENT_MOUSEDOWN: undefined,
+        ...overrides
+      };
+      (_values$EVENT_MOUSEDO = values.EVENT_MOUSEDOWN) != null ? _values$EVENT_MOUSEDO : values.EVENT_MOUSEDOWN = `mousedown.bs.${NAME}`;
+      return values;
+    }
+    static get ConfigConstants() {
+      return this.getConfigConstants();
+    }
+    static extendDefaultConfig(overrides = {}) {
+      return BaseComponent.extendDefaultConfig.call(this, overrides);
+    }
 
     // Public
     show(callback) {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       if (!this._config.isVisible) {
         index_js.execute(callback);
         return;
@@ -81,6 +98,9 @@
       });
     }
     hide(callback) {
+      const {
+        CLASS_NAME_SHOW
+      } = this.constructor.ConfigConstants;
       if (!this._config.isVisible) {
         index_js.execute(callback);
         return;
@@ -92,6 +112,9 @@
       });
     }
     dispose() {
+      const {
+        EVENT_MOUSEDOWN
+      } = this.constructor.ConfigConstants;
       if (!this._isAppended) {
         return;
       }
@@ -102,6 +125,9 @@
 
     // Private
     _getElement() {
+      const {
+        CLASS_NAME_FADE
+      } = this.constructor.ConfigConstants;
       if (!this._element) {
         const backdrop = document.createElement('div');
         backdrop.className = this._config.className;
@@ -118,6 +144,9 @@
       return config;
     }
     _append() {
+      const {
+        EVENT_MOUSEDOWN
+      } = this.constructor.ConfigConstants;
       if (this._isAppended) {
         return;
       }

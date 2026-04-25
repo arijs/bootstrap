@@ -22,6 +22,70 @@ describe('Backdrop', () => {
     }
   })
 
+  describe('static config extension', () => {
+    it('should expose getConfigConstants and ConfigConstants', () => {
+      expect(typeof Backdrop.getConfigConstants).toBe('function')
+      expect(Backdrop.ConfigConstants).toEqual(jasmine.any(Object))
+      expect(Backdrop.ConfigConstants.EVENT_MOUSEDOWN).toBe('mousedown.bs.backdrop')
+    })
+
+    it('should expose extendDefaultConfig and return a subclass', () => {
+      expect(typeof Backdrop.extendDefaultConfig).toBe('function')
+
+      const CustomBackdrop = Backdrop.extendDefaultConfig({ CLASS_NAME_SHOW: 'is-shown' })
+      expect(CustomBackdrop.prototype instanceof Backdrop).toBeTrue()
+      expect(CustomBackdrop.ConfigConstants.CLASS_NAME_SHOW).toBe('is-shown')
+      expect(Backdrop.ConfigConstants.CLASS_NAME_SHOW).toBe('show')
+    })
+
+    it('should split instance options into Default and structural overrides into ConfigConstants', () => {
+      const CustomBackdrop = Backdrop.extendDefaultConfig({
+        isVisible: false,
+        CLASS_NAME_SHOW: 'is-shown',
+        EVENT_MOUSEDOWN: 'click.bs.custom-backdrop'
+      })
+
+      expect(CustomBackdrop.Default.isVisible).toBeFalse()
+      expect(CustomBackdrop.ConfigConstants.CLASS_NAME_SHOW).toBe('is-shown')
+      expect(CustomBackdrop.ConfigConstants.EVENT_MOUSEDOWN).toBe('click.bs.custom-backdrop')
+      expect(CustomBackdrop.Default.CLASS_NAME_SHOW).toBeUndefined()
+    })
+
+    it('should apply subclassed constants at runtime', () => {
+      return new Promise(resolve => {
+        const spy = jasmine.createSpy('spy')
+        const CustomBackdrop = Backdrop.extendDefaultConfig({
+          CLASS_NAME_SHOW: 'is-shown',
+          CLASS_NAME_FADE: 'is-fade',
+          EVENT_MOUSEDOWN: 'click.bs.custom-backdrop'
+        })
+
+        const instance = new CustomBackdrop({
+          isVisible: true,
+          isAnimated: true,
+          clickCallback: spy
+        })
+
+        instance.show(() => {
+          const element = document.querySelector(CLASS_BACKDROP)
+
+          expect(element).toHaveClass('is-shown')
+          expect(element).toHaveClass('is-fade')
+          expect(element).not.toHaveClass(CLASS_NAME_SHOW)
+          expect(element).not.toHaveClass(CLASS_NAME_FADE)
+
+          element.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }))
+
+          setTimeout(() => {
+            expect(spy).toHaveBeenCalled()
+            instance.dispose()
+            resolve()
+          }, 10)
+        })
+      })
+    })
+  })
+
   describe('show', () => {
     it('should append the backdrop html once on show and include the "show" class if it is "shown"', () => {
       return new Promise(resolve => {
