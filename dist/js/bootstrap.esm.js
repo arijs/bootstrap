@@ -2955,6 +2955,7 @@ class Modal extends BaseComponent {
       SELECTOR_MODAL_BODY: '.modal-body',
       SELECTOR_DATA_TOGGLE: '[data-bs-toggle="modal"]',
       DATA_API_KEY: undefined,
+      BackdropClass: Backdrop,
       ...overrides
     };
     (_values$DATA_API_KEY = values.DATA_API_KEY) != null ? _values$DATA_API_KEY : values.DATA_API_KEY = '.data-api';
@@ -3021,7 +3022,10 @@ class Modal extends BaseComponent {
 
   // Private
   _initializeBackDrop() {
-    return new Backdrop({
+    const {
+      BackdropClass
+    } = this.constructor.ConfigConstants;
+    return new BackdropClass({
       isVisible: Boolean(this._config.backdrop),
       // 'static' option will be translated to true, and booleans will keep their value,
       isAnimated: this._isAnimated()
