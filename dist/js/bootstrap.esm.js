@@ -2103,6 +2103,7 @@ class Dropdown extends BaseComponent {
       PLACEMENT_LEFT: isRTL() ? 'right-start' : 'left-start',
       PLACEMENT_TOPCENTER: 'top',
       PLACEMENT_BOTTOMCENTER: 'bottom',
+      CSS_VARIABLE_POSITION: '--bs-position',
       DATA_API_KEY: '.data-api'
     };
     return {
@@ -2247,7 +2248,8 @@ class Dropdown extends BaseComponent {
       PLACEMENT_TOPEND,
       PLACEMENT_TOP,
       PLACEMENT_BOTTOMEND,
-      PLACEMENT_BOTTOM
+      PLACEMENT_BOTTOM,
+      CSS_VARIABLE_POSITION
     } = this.constructor.ConfigConstants;
     const parentDropdown = this._parent;
     if (parentDropdown.classList.contains(CLASS_NAME_DROPEND)) {
@@ -2264,7 +2266,7 @@ class Dropdown extends BaseComponent {
     }
 
     // We need to trim the value because custom properties can also include spaces
-    const isEnd = getComputedStyle(this._menu).getPropertyValue('--bs-position').trim() === 'end';
+    const isEnd = getComputedStyle(this._menu).getPropertyValue(CSS_VARIABLE_POSITION).trim() === 'end';
     if (parentDropdown.classList.contains(CLASS_NAME_DROPUP)) {
       return isEnd ? PLACEMENT_TOPEND : PLACEMENT_TOP;
     }
