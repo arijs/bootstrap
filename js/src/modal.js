@@ -23,29 +23,6 @@ import ScrollBarHelper from './util/scrollbar.js'
 const NAME = 'modal'
 const DATA_KEY = 'bs.modal'
 const EVENT_KEY = `.${DATA_KEY}`
-const DATA_API_KEY = '.data-api'
-const ESCAPE_KEY = 'Escape'
-
-const EVENT_HIDE = `hide${EVENT_KEY}`
-const EVENT_HIDE_PREVENTED = `hidePrevented${EVENT_KEY}`
-const EVENT_HIDDEN = `hidden${EVENT_KEY}`
-const EVENT_SHOW = `show${EVENT_KEY}`
-const EVENT_SHOWN = `shown${EVENT_KEY}`
-const EVENT_RESIZE = `resize${EVENT_KEY}`
-const EVENT_CLICK_DISMISS = `click.dismiss${EVENT_KEY}`
-const EVENT_MOUSEDOWN_DISMISS = `mousedown.dismiss${EVENT_KEY}`
-const EVENT_KEYDOWN_DISMISS = `keydown.dismiss${EVENT_KEY}`
-const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`
-
-const CLASS_NAME_OPEN = 'modal-open'
-const CLASS_NAME_FADE = 'fade'
-const CLASS_NAME_SHOW = 'show'
-const CLASS_NAME_STATIC = 'modal-static'
-
-const OPEN_SELECTOR = '.modal.show'
-const SELECTOR_DIALOG = '.modal-dialog'
-const SELECTOR_MODAL_BODY = '.modal-body'
-const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="modal"]'
 
 const Default = {
   backdrop: true,
@@ -67,6 +44,7 @@ class Modal extends BaseComponent {
   constructor(element, config) {
     super(element, config)
 
+    const { SELECTOR_DIALOG } = this.constructor.ConfigConstants
     this._dialog = SelectorEngine.findOne(SELECTOR_DIALOG, this._element)
     this._backdrop = this._initializeBackDrop()
     this._focustrap = this._initializeFocusTrap()
@@ -91,29 +69,34 @@ class Modal extends BaseComponent {
   }
 
   static getConfigConstants(overrides = {}) {
-    const defaults = {
-      ESCAPE_KEY,
-      EVENT_HIDE,
-      EVENT_HIDE_PREVENTED,
-      EVENT_HIDDEN,
-      EVENT_SHOW,
-      EVENT_SHOWN,
-      EVENT_RESIZE,
-      EVENT_CLICK_DISMISS,
-      EVENT_MOUSEDOWN_DISMISS,
-      EVENT_KEYDOWN_DISMISS,
-      EVENT_CLICK_DATA_API,
-      CLASS_NAME_OPEN,
-      CLASS_NAME_FADE,
-      CLASS_NAME_SHOW,
-      CLASS_NAME_STATIC,
-      OPEN_SELECTOR,
-      SELECTOR_DIALOG,
-      SELECTOR_MODAL_BODY,
-      SELECTOR_DATA_TOGGLE,
-      DATA_API_KEY
+    const values = {
+      ESCAPE_KEY: 'Escape',
+      EVENT_HIDE: `hide${EVENT_KEY}`,
+      EVENT_HIDE_PREVENTED: `hidePrevented${EVENT_KEY}`,
+      EVENT_HIDDEN: `hidden${EVENT_KEY}`,
+      EVENT_SHOW: `show${EVENT_KEY}`,
+      EVENT_SHOWN: `shown${EVENT_KEY}`,
+      EVENT_RESIZE: `resize${EVENT_KEY}`,
+      EVENT_CLICK_DISMISS: `click.dismiss${EVENT_KEY}`,
+      EVENT_MOUSEDOWN_DISMISS: `mousedown.dismiss${EVENT_KEY}`,
+      EVENT_KEYDOWN_DISMISS: `keydown.dismiss${EVENT_KEY}`,
+      EVENT_CLICK_DATA_API: undefined,
+      CLASS_NAME_OPEN: 'modal-open',
+      CLASS_NAME_FADE: 'fade',
+      CLASS_NAME_SHOW: 'show',
+      CLASS_NAME_STATIC: 'modal-static',
+      OPEN_SELECTOR: '.modal.show',
+      SELECTOR_DIALOG: '.modal-dialog',
+      SELECTOR_MODAL_BODY: '.modal-body',
+      SELECTOR_DATA_TOGGLE: '[data-bs-toggle="modal"]',
+      DATA_API_KEY: undefined,
+      ...overrides
     }
-    return { ...defaults, ...overrides }
+
+    values.DATA_API_KEY ??= '.data-api'
+    values.EVENT_CLICK_DATA_API ??= `click${EVENT_KEY}${values.DATA_API_KEY}`
+
+    return values
   }
 
   static get ConfigConstants() {
@@ -129,6 +112,8 @@ class Modal extends BaseComponent {
     if (this._isShown || this._isTransitioning) {
       return
     }
+
+    const { EVENT_SHOW, CLASS_NAME_OPEN } = this.constructor.ConfigConstants
 
     const showEvent = EventHandler.trigger(this._element, EVENT_SHOW, {
       relatedTarget
@@ -154,6 +139,8 @@ class Modal extends BaseComponent {
     if (!this._isShown || this._isTransitioning) {
       return
     }
+
+    const { EVENT_HIDE, CLASS_NAME_SHOW } = this.constructor.ConfigConstants
 
     const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE)
 
@@ -199,6 +186,8 @@ class Modal extends BaseComponent {
   }
 
   _showElement(relatedTarget) {
+    const { SELECTOR_MODAL_BODY, CLASS_NAME_SHOW, EVENT_SHOWN } = this.constructor.ConfigConstants
+
     // try to append dynamic modal
     if (!document.body.contains(this._element)) {
       document.body.append(this._element)
@@ -234,6 +223,14 @@ class Modal extends BaseComponent {
   }
 
   _addEventListeners() {
+    const {
+      EVENT_KEYDOWN_DISMISS,
+      ESCAPE_KEY,
+      EVENT_RESIZE,
+      EVENT_MOUSEDOWN_DISMISS,
+      EVENT_CLICK_DISMISS
+    } = this.constructor.ConfigConstants
+
     EventHandler.on(this._element, EVENT_KEYDOWN_DISMISS, event => {
       if (event.key !== ESCAPE_KEY) {
         return
@@ -273,6 +270,8 @@ class Modal extends BaseComponent {
   }
 
   _hideModal() {
+    const { CLASS_NAME_OPEN, EVENT_HIDDEN } = this.constructor.ConfigConstants
+
     this._element.style.display = 'none'
     this._element.setAttribute('aria-hidden', true)
     this._element.removeAttribute('aria-modal')
@@ -288,10 +287,13 @@ class Modal extends BaseComponent {
   }
 
   _isAnimated() {
+    const { CLASS_NAME_FADE } = this.constructor.ConfigConstants
     return this._element.classList.contains(CLASS_NAME_FADE)
   }
 
   _triggerBackdropTransition() {
+    const { EVENT_HIDE_PREVENTED, CLASS_NAME_STATIC } = this.constructor.ConfigConstants
+
     const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE_PREVENTED)
     if (hideEvent.defaultPrevented) {
       return
@@ -346,6 +348,7 @@ class Modal extends BaseComponent {
 
   // Static
   static _isInitialized = false
+  static _clickHandler = null
 
   static init() {
     if (this._isInitialized) {
@@ -355,6 +358,15 @@ class Modal extends BaseComponent {
     if (typeof document === 'undefined') {
       return
     }
+
+    const Class = this
+    const {
+      EVENT_CLICK_DATA_API,
+      SELECTOR_DATA_TOGGLE,
+      EVENT_SHOW,
+      EVENT_HIDDEN,
+      OPEN_SELECTOR
+    } = Class.ConfigConstants
 
     this._clickHandler = function (event) {
       const target = SelectorEngine.getElementFromSelector(this)
@@ -379,10 +391,10 @@ class Modal extends BaseComponent {
       // avoid conflict when clicking modal toggler while another one is open
       const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR)
       if (alreadyOpen) {
-        Modal.getInstance(alreadyOpen).hide()
+        Class.getInstance(alreadyOpen).hide()
       }
 
-      const data = Modal.getOrCreateInstance(target)
+      const data = Class.getOrCreateInstance(target)
 
       data.toggle(this)
     }
@@ -395,6 +407,8 @@ class Modal extends BaseComponent {
     if (!this._isInitialized) {
       return
     }
+
+    const { EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE } = this.ConfigConstants
 
     EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
     this._isInitialized = false
