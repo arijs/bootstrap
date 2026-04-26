@@ -1030,6 +1030,159 @@ defineJQueryPlugin(Alert);
 
 /**
  * --------------------------------------------------------------------------
+ * Bootstrap util/backdrop.js
+ * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
+ * --------------------------------------------------------------------------
+ */
+
+
+/**
+ * Constants
+ */
+
+const NAME$e = 'backdrop';
+const Default$c = {
+  className: 'modal-backdrop',
+  clickCallback: null,
+  isAnimated: false,
+  isVisible: true,
+  // if false, we use the backdrop helper without adding any element to the dom
+  rootElement: 'body' // give the choice to place backdrop under different elements
+};
+const DefaultType$c = {
+  className: 'string',
+  clickCallback: '(function|null)',
+  isAnimated: 'boolean',
+  isVisible: 'boolean',
+  rootElement: '(element|string)'
+};
+
+/**
+ * Class definition
+ */
+
+class Backdrop extends Config {
+  constructor(config) {
+    super();
+    this._config = this._getConfig(config);
+    this._isAppended = false;
+    this._element = null;
+  }
+
+  // Getters
+  static get Default() {
+    return Default$c;
+  }
+  static get DefaultType() {
+    return DefaultType$c;
+  }
+  static get NAME() {
+    return NAME$e;
+  }
+  static getConfigConstants(overrides = {}) {
+    var _values$EVENT_MOUSEDO;
+    const values = {
+      CLASS_NAME_FADE: 'fade',
+      CLASS_NAME_SHOW: 'show',
+      EVENT_MOUSEDOWN: undefined,
+      ...overrides
+    };
+    (_values$EVENT_MOUSEDO = values.EVENT_MOUSEDOWN) != null ? _values$EVENT_MOUSEDO : values.EVENT_MOUSEDOWN = `mousedown.bs.${NAME$e}`;
+    return values;
+  }
+  static get ConfigConstants() {
+    return this.getConfigConstants();
+  }
+  static extendDefaultConfig(overrides = {}) {
+    return BaseComponent.extendDefaultConfig.call(this, overrides);
+  }
+
+  // Public
+  show(callback) {
+    const {
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
+    if (!this._config.isVisible) {
+      execute(callback);
+      return;
+    }
+    this._append();
+    const element = this._getElement();
+    if (this._config.isAnimated) {
+      reflow(element);
+    }
+    element.classList.add(CLASS_NAME_SHOW);
+    this._emulateAnimation(() => {
+      execute(callback);
+    });
+  }
+  hide(callback) {
+    const {
+      CLASS_NAME_SHOW
+    } = this.constructor.ConfigConstants;
+    if (!this._config.isVisible) {
+      execute(callback);
+      return;
+    }
+    this._getElement().classList.remove(CLASS_NAME_SHOW);
+    this._emulateAnimation(() => {
+      this.dispose();
+      execute(callback);
+    });
+  }
+  dispose() {
+    const {
+      EVENT_MOUSEDOWN
+    } = this.constructor.ConfigConstants;
+    if (!this._isAppended) {
+      return;
+    }
+    EventHandler.off(this._element, EVENT_MOUSEDOWN);
+    this._element.remove();
+    this._isAppended = false;
+  }
+
+  // Private
+  _getElement() {
+    const {
+      CLASS_NAME_FADE
+    } = this.constructor.ConfigConstants;
+    if (!this._element) {
+      const backdrop = document.createElement('div');
+      backdrop.className = this._config.className;
+      if (this._config.isAnimated) {
+        backdrop.classList.add(CLASS_NAME_FADE);
+      }
+      this._element = backdrop;
+    }
+    return this._element;
+  }
+  _configAfterMerge(config) {
+    // use getElement() with the default "body" to get a fresh Element on each instantiation
+    config.rootElement = getElement(config.rootElement);
+    return config;
+  }
+  _append() {
+    const {
+      EVENT_MOUSEDOWN
+    } = this.constructor.ConfigConstants;
+    if (this._isAppended) {
+      return;
+    }
+    const element = this._getElement();
+    this._config.rootElement.append(element);
+    EventHandler.on(element, EVENT_MOUSEDOWN, () => {
+      execute(this._config.clickCallback);
+    });
+    this._isAppended = true;
+  }
+  _emulateAnimation(callback) {
+    executeAfterTransition(callback, this._getElement(), this._config.isAnimated);
+  }
+}
+
+/**
+ * --------------------------------------------------------------------------
  * Bootstrap button.js
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  * --------------------------------------------------------------------------
@@ -1040,7 +1193,7 @@ defineJQueryPlugin(Alert);
  * Constants
  */
 
-const NAME$e = 'button';
+const NAME$d = 'button';
 const DOCUMENT_DATA_API_REGISTRY_KEY$1 = '__bootstrapButtonDataApiRegistry__';
 
 /**
@@ -1050,7 +1203,7 @@ const DOCUMENT_DATA_API_REGISTRY_KEY$1 = '__bootstrapButtonDataApiRegistry__';
 class Button extends BaseComponent {
   // Getters
   static get NAME() {
-    return NAME$e;
+    return NAME$d;
   }
   static getConfigConstants(overrides = {}) {
     const defaults = {
@@ -1157,7 +1310,7 @@ if (typeof document !== 'undefined') {
  * Constants
  */
 
-const NAME$d = 'swipe';
+const NAME$c = 'swipe';
 const EVENT_KEY$8 = '.bs.swipe';
 const EVENT_TOUCHSTART = `touchstart${EVENT_KEY$8}`;
 const EVENT_TOUCHMOVE = `touchmove${EVENT_KEY$8}`;
@@ -1168,12 +1321,12 @@ const POINTER_TYPE_TOUCH = 'touch';
 const POINTER_TYPE_PEN = 'pen';
 const CLASS_NAME_POINTER_EVENT = 'pointer-event';
 const SWIPE_THRESHOLD = 40;
-const Default$c = {
+const Default$b = {
   endCallback: null,
   leftCallback: null,
   rightCallback: null
 };
-const DefaultType$c = {
+const DefaultType$b = {
   endCallback: '(function|null)',
   leftCallback: '(function|null)',
   rightCallback: '(function|null)'
@@ -1198,13 +1351,13 @@ class Swipe extends Config {
 
   // Getters
   static get Default() {
-    return Default$c;
+    return Default$b;
   }
   static get DefaultType() {
-    return DefaultType$c;
+    return DefaultType$b;
   }
   static get NAME() {
-    return NAME$d;
+    return NAME$c;
   }
 
   // Public
@@ -1277,7 +1430,7 @@ class Swipe extends Config {
  * Constants
  */
 
-const NAME$c = 'carousel';
+const NAME$b = 'carousel';
 const DATA_KEY$7 = 'bs.carousel';
 const EVENT_KEY$7 = `.${DATA_KEY$7}`;
 const DATA_API_KEY$2 = '.data-api';
@@ -1315,7 +1468,7 @@ const KEY_TO_DIRECTION = {
   [ARROW_LEFT_KEY$1]: DIRECTION_RIGHT,
   [ARROW_RIGHT_KEY$1]: DIRECTION_LEFT
 };
-const Default$b = {
+const Default$a = {
   interval: 5000,
   keyboard: true,
   pause: 'hover',
@@ -1323,7 +1476,7 @@ const Default$b = {
   touch: true,
   wrap: true
 };
-const DefaultType$b = {
+const DefaultType$a = {
   interval: '(number|boolean)',
   // TODO:v6 remove boolean support
   keyboard: 'boolean',
@@ -1354,13 +1507,13 @@ class Carousel extends BaseComponent {
 
   // Getters
   static get Default() {
-    return Default$b;
+    return Default$a;
   }
   static get DefaultType() {
-    return DefaultType$b;
+    return DefaultType$a;
   }
   static get NAME() {
-    return NAME$c;
+    return NAME$b;
   }
   static getConfigConstants(overrides = {}) {
     const defaults = {
@@ -1715,14 +1868,14 @@ defineJQueryPlugin(Carousel);
  * Constants
  */
 
-const NAME$b = 'collapse';
+const NAME$a = 'collapse';
 const DATA_KEY$6 = 'bs.collapse';
 const EVENT_KEY$6 = `.${DATA_KEY$6}`;
-const Default$a = {
+const Default$9 = {
   parent: null,
   toggle: true
 };
-const DefaultType$a = {
+const DefaultType$9 = {
   parent: '(null|element)',
   toggle: 'boolean'
 };
@@ -1758,13 +1911,13 @@ class Collapse extends BaseComponent {
 
   // Getters
   static get Default() {
-    return Default$a;
+    return Default$9;
   }
   static get DefaultType() {
-    return DefaultType$a;
+    return DefaultType$9;
   }
   static get NAME() {
-    return NAME$b;
+    return NAME$a;
   }
   static getConfigConstants(overrides = {}) {
     var _values$CLASS_NAME_DE, _values$SELECTOR_ACTI;
@@ -2030,8 +2183,8 @@ defineJQueryPlugin(Collapse);
  * Constants
  */
 
-const NAME$a = 'dropdown';
-const Default$9 = {
+const NAME$9 = 'dropdown';
+const Default$8 = {
   autoClose: true,
   boundary: 'clippingParents',
   display: 'dynamic',
@@ -2039,7 +2192,7 @@ const Default$9 = {
   popperConfig: null,
   reference: 'toggle'
 };
-const DefaultType$9 = {
+const DefaultType$8 = {
   autoClose: '(boolean|string)',
   boundary: '(string|element)',
   display: 'string',
@@ -2068,13 +2221,13 @@ class Dropdown extends BaseComponent {
 
   // Getters
   static get Default() {
-    return Default$9;
+    return Default$8;
   }
   static get DefaultType() {
-    return DefaultType$9;
+    return DefaultType$8;
   }
   static get NAME() {
-    return NAME$a;
+    return NAME$9;
   }
   static getConfigConstants(overrides = {}) {
     const defaults = {
@@ -2209,7 +2362,7 @@ class Dropdown extends BaseComponent {
     config = super._getConfig(config);
     if (typeof config.reference === 'object' && !isElement(config.reference) && typeof config.reference.getBoundingClientRect !== 'function') {
       // Popper virtual elements require a getBoundingClientRect method
-      throw new TypeError(`${NAME$a.toUpperCase()}: Option "reference" provided type "object" without a required "getBoundingClientRect" method.`);
+      throw new TypeError(`${NAME$9.toUpperCase()}: Option "reference" provided type "object" without a required "getBoundingClientRect" method.`);
     }
     return config;
   }
@@ -2526,159 +2679,6 @@ Dropdown._keydownHandler = null;
 Dropdown._toggleClickHandler = null;
 if (typeof document !== 'undefined') {
   Dropdown.init();
-}
-
-/**
- * --------------------------------------------------------------------------
- * Bootstrap util/backdrop.js
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
- * --------------------------------------------------------------------------
- */
-
-
-/**
- * Constants
- */
-
-const NAME$9 = 'backdrop';
-const Default$8 = {
-  className: 'modal-backdrop',
-  clickCallback: null,
-  isAnimated: false,
-  isVisible: true,
-  // if false, we use the backdrop helper without adding any element to the dom
-  rootElement: 'body' // give the choice to place backdrop under different elements
-};
-const DefaultType$8 = {
-  className: 'string',
-  clickCallback: '(function|null)',
-  isAnimated: 'boolean',
-  isVisible: 'boolean',
-  rootElement: '(element|string)'
-};
-
-/**
- * Class definition
- */
-
-class Backdrop extends Config {
-  constructor(config) {
-    super();
-    this._config = this._getConfig(config);
-    this._isAppended = false;
-    this._element = null;
-  }
-
-  // Getters
-  static get Default() {
-    return Default$8;
-  }
-  static get DefaultType() {
-    return DefaultType$8;
-  }
-  static get NAME() {
-    return NAME$9;
-  }
-  static getConfigConstants(overrides = {}) {
-    var _values$EVENT_MOUSEDO;
-    const values = {
-      CLASS_NAME_FADE: 'fade',
-      CLASS_NAME_SHOW: 'show',
-      EVENT_MOUSEDOWN: undefined,
-      ...overrides
-    };
-    (_values$EVENT_MOUSEDO = values.EVENT_MOUSEDOWN) != null ? _values$EVENT_MOUSEDO : values.EVENT_MOUSEDOWN = `mousedown.bs.${NAME$9}`;
-    return values;
-  }
-  static get ConfigConstants() {
-    return this.getConfigConstants();
-  }
-  static extendDefaultConfig(overrides = {}) {
-    return BaseComponent.extendDefaultConfig.call(this, overrides);
-  }
-
-  // Public
-  show(callback) {
-    const {
-      CLASS_NAME_SHOW
-    } = this.constructor.ConfigConstants;
-    if (!this._config.isVisible) {
-      execute(callback);
-      return;
-    }
-    this._append();
-    const element = this._getElement();
-    if (this._config.isAnimated) {
-      reflow(element);
-    }
-    element.classList.add(CLASS_NAME_SHOW);
-    this._emulateAnimation(() => {
-      execute(callback);
-    });
-  }
-  hide(callback) {
-    const {
-      CLASS_NAME_SHOW
-    } = this.constructor.ConfigConstants;
-    if (!this._config.isVisible) {
-      execute(callback);
-      return;
-    }
-    this._getElement().classList.remove(CLASS_NAME_SHOW);
-    this._emulateAnimation(() => {
-      this.dispose();
-      execute(callback);
-    });
-  }
-  dispose() {
-    const {
-      EVENT_MOUSEDOWN
-    } = this.constructor.ConfigConstants;
-    if (!this._isAppended) {
-      return;
-    }
-    EventHandler.off(this._element, EVENT_MOUSEDOWN);
-    this._element.remove();
-    this._isAppended = false;
-  }
-
-  // Private
-  _getElement() {
-    const {
-      CLASS_NAME_FADE
-    } = this.constructor.ConfigConstants;
-    if (!this._element) {
-      const backdrop = document.createElement('div');
-      backdrop.className = this._config.className;
-      if (this._config.isAnimated) {
-        backdrop.classList.add(CLASS_NAME_FADE);
-      }
-      this._element = backdrop;
-    }
-    return this._element;
-  }
-  _configAfterMerge(config) {
-    // use getElement() with the default "body" to get a fresh Element on each instantiation
-    config.rootElement = getElement(config.rootElement);
-    return config;
-  }
-  _append() {
-    const {
-      EVENT_MOUSEDOWN
-    } = this.constructor.ConfigConstants;
-    if (this._isAppended) {
-      return;
-    }
-    const element = this._getElement();
-    this._config.rootElement.append(element);
-    EventHandler.on(element, EVENT_MOUSEDOWN, () => {
-      execute(this._config.clickCallback);
-    });
-    this._isAppended = true;
-  }
-  _emulateAnimation(callback) {
-    executeAfterTransition(callback, this._getElement(), this._config.isAnimated);
-  }
 }
 
 /**
@@ -5358,5 +5358,5 @@ enableDismissTrigger(Toast);
 
 defineJQueryPlugin(Toast);
 
-export { Alert, Button, Carousel, Collapse, Dropdown, Modal, Offcanvas, Popover, ScrollSpy, Tab, Toast, Tooltip };
+export { Alert, Backdrop, Button, Carousel, Collapse, Dropdown, Modal, Offcanvas, Popover, ScrollSpy, Tab, Toast, Tooltip };
 //# sourceMappingURL=bootstrap.esm.js.map
