@@ -93,6 +93,8 @@ class Carousel extends BaseComponent {
   constructor(element, config) {
     super(element, config)
 
+    const { SELECTOR_INDICATORS, RIDE_VALUE } = this.constructor.ConfigConstants
+
     this._interval = null
     this._activeElement = null
     this._isSliding = false
@@ -102,7 +104,7 @@ class Carousel extends BaseComponent {
     this._indicatorsElement = SelectorEngine.findOne(SELECTOR_INDICATORS, this._element)
     this._addEventListeners()
 
-    if (this._config.ride === CLASS_NAME_CAROUSEL) {
+    if (this._config.ride === RIDE_VALUE) {
       this.cycle()
     }
   }
@@ -137,6 +139,7 @@ class Carousel extends BaseComponent {
       EVENT_DRAG_START,
       EVENT_LOAD_DATA_API,
       EVENT_CLICK_DATA_API,
+      RIDE_VALUE: 'carousel',
       CLASS_NAME_CAROUSEL,
       CLASS_NAME_ACTIVE,
       CLASS_NAME_SLIDE,
@@ -258,6 +261,8 @@ class Carousel extends BaseComponent {
   }
 
   _addTouchEventListeners() {
+    const { SELECTOR_ITEM_IMG, TOUCHEVENT_COMPAT_WAIT, DIRECTION_LEFT, DIRECTION_RIGHT } = this.constructor.ConfigConstants
+
     for (const img of SelectorEngine.find(SELECTOR_ITEM_IMG, this._element)) {
       EventHandler.on(img, EVENT_DRAG_START, event => event.preventDefault())
     }
@@ -309,6 +314,8 @@ class Carousel extends BaseComponent {
   }
 
   _setActiveIndicatorElement(index) {
+    const { CLASS_NAME_ACTIVE, SELECTOR_ACTIVE } = this.constructor.ConfigConstants
+
     if (!this._indicatorsElement) {
       return
     }
@@ -339,6 +346,16 @@ class Carousel extends BaseComponent {
   }
 
   _slide(order, element = null) {
+    const {
+      CLASS_NAME_ACTIVE,
+      CLASS_NAME_END,
+      CLASS_NAME_NEXT,
+      CLASS_NAME_PREV,
+      CLASS_NAME_START,
+      EVENT_SLIDE,
+      EVENT_SLID
+    } = this.constructor.ConfigConstants
+
     if (this._isSliding) {
       return
     }
@@ -411,14 +428,17 @@ class Carousel extends BaseComponent {
   }
 
   _isAnimated() {
+    const { CLASS_NAME_SLIDE } = this.constructor.ConfigConstants
     return this._element.classList.contains(CLASS_NAME_SLIDE)
   }
 
   _getActive() {
+    const { SELECTOR_ACTIVE_ITEM } = this.constructor.ConfigConstants
     return SelectorEngine.findOne(SELECTOR_ACTIVE_ITEM, this._element)
   }
 
   _getItems() {
+    const { SELECTOR_ITEM } = this.constructor.ConfigConstants
     return SelectorEngine.find(SELECTOR_ITEM, this._element)
   }
 
@@ -457,6 +477,15 @@ class Carousel extends BaseComponent {
       return
     }
 
+    const Class = this
+    const {
+      CLASS_NAME_CAROUSEL,
+      EVENT_CLICK_DATA_API,
+      EVENT_LOAD_DATA_API,
+      SELECTOR_DATA_RIDE,
+      SELECTOR_DATA_SLIDE
+    } = Class.ConfigConstants
+
     this._clickHandler = function (event) {
       const target = SelectorEngine.getElementFromSelector(this)
 
@@ -465,8 +494,7 @@ class Carousel extends BaseComponent {
       }
 
       event.preventDefault()
-
-      const carousel = Carousel.getOrCreateInstance(target)
+      const carousel = Class.getOrCreateInstance(target)
       const slideIndex = this.getAttribute('data-bs-slide-to')
 
       if (slideIndex) {
@@ -489,7 +517,7 @@ class Carousel extends BaseComponent {
       const carousels = SelectorEngine.find(SELECTOR_DATA_RIDE)
 
       for (const carousel of carousels) {
-        Carousel.getOrCreateInstance(carousel)
+        Class.getOrCreateInstance(carousel)
       }
     }
 
@@ -502,6 +530,8 @@ class Carousel extends BaseComponent {
     if (!this._isInitialized) {
       return
     }
+
+    const { EVENT_CLICK_DATA_API, EVENT_LOAD_DATA_API, SELECTOR_DATA_SLIDE } = this.ConfigConstants
 
     EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_SLIDE, this._clickHandler)
     EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler)

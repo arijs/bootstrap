@@ -1493,6 +1493,10 @@ const DefaultType$a = {
 class Carousel extends BaseComponent {
   constructor(element, config) {
     super(element, config);
+    const {
+      SELECTOR_INDICATORS,
+      RIDE_VALUE
+    } = this.constructor.ConfigConstants;
     this._interval = null;
     this._activeElement = null;
     this._isSliding = false;
@@ -1500,7 +1504,7 @@ class Carousel extends BaseComponent {
     this._swipeHelper = null;
     this._indicatorsElement = SelectorEngine.findOne(SELECTOR_INDICATORS, this._element);
     this._addEventListeners();
-    if (this._config.ride === CLASS_NAME_CAROUSEL) {
+    if (this._config.ride === RIDE_VALUE) {
       this.cycle();
     }
   }
@@ -1532,6 +1536,7 @@ class Carousel extends BaseComponent {
       EVENT_DRAG_START,
       EVENT_LOAD_DATA_API: EVENT_LOAD_DATA_API$3,
       EVENT_CLICK_DATA_API: EVENT_CLICK_DATA_API$2,
+      RIDE_VALUE: 'carousel',
       CLASS_NAME_CAROUSEL,
       CLASS_NAME_ACTIVE: CLASS_NAME_ACTIVE$2,
       CLASS_NAME_SLIDE,
@@ -1635,6 +1640,12 @@ class Carousel extends BaseComponent {
     }
   }
   _addTouchEventListeners() {
+    const {
+      SELECTOR_ITEM_IMG,
+      TOUCHEVENT_COMPAT_WAIT,
+      DIRECTION_LEFT,
+      DIRECTION_RIGHT
+    } = this.constructor.ConfigConstants;
     for (const img of SelectorEngine.find(SELECTOR_ITEM_IMG, this._element)) {
       EventHandler.on(img, EVENT_DRAG_START, event => event.preventDefault());
     }
@@ -1678,15 +1689,19 @@ class Carousel extends BaseComponent {
     return this._getItems().indexOf(element);
   }
   _setActiveIndicatorElement(index) {
+    const {
+      CLASS_NAME_ACTIVE,
+      SELECTOR_ACTIVE
+    } = this.constructor.ConfigConstants;
     if (!this._indicatorsElement) {
       return;
     }
     const activeIndicator = SelectorEngine.findOne(SELECTOR_ACTIVE, this._indicatorsElement);
-    activeIndicator.classList.remove(CLASS_NAME_ACTIVE$2);
+    activeIndicator.classList.remove(CLASS_NAME_ACTIVE);
     activeIndicator.removeAttribute('aria-current');
     const newActiveIndicator = SelectorEngine.findOne(`[data-bs-slide-to="${index}"]`, this._indicatorsElement);
     if (newActiveIndicator) {
-      newActiveIndicator.classList.add(CLASS_NAME_ACTIVE$2);
+      newActiveIndicator.classList.add(CLASS_NAME_ACTIVE);
       newActiveIndicator.setAttribute('aria-current', 'true');
     }
   }
@@ -1699,6 +1714,15 @@ class Carousel extends BaseComponent {
     this._config.interval = elementInterval || this._config.defaultInterval;
   }
   _slide(order, element = null) {
+    const {
+      CLASS_NAME_ACTIVE,
+      CLASS_NAME_END,
+      CLASS_NAME_NEXT,
+      CLASS_NAME_PREV,
+      CLASS_NAME_START,
+      EVENT_SLIDE,
+      EVENT_SLID
+    } = this.constructor.ConfigConstants;
     if (this._isSliding) {
       return;
     }
@@ -1739,8 +1763,8 @@ class Carousel extends BaseComponent {
     nextElement.classList.add(directionalClassName);
     const completeCallBack = () => {
       nextElement.classList.remove(directionalClassName, orderClassName);
-      nextElement.classList.add(CLASS_NAME_ACTIVE$2);
-      activeElement.classList.remove(CLASS_NAME_ACTIVE$2, orderClassName, directionalClassName);
+      nextElement.classList.add(CLASS_NAME_ACTIVE);
+      activeElement.classList.remove(CLASS_NAME_ACTIVE, orderClassName, directionalClassName);
       this._isSliding = false;
       triggerEvent(EVENT_SLID);
     };
@@ -1750,12 +1774,21 @@ class Carousel extends BaseComponent {
     }
   }
   _isAnimated() {
+    const {
+      CLASS_NAME_SLIDE
+    } = this.constructor.ConfigConstants;
     return this._element.classList.contains(CLASS_NAME_SLIDE);
   }
   _getActive() {
+    const {
+      SELECTOR_ACTIVE_ITEM
+    } = this.constructor.ConfigConstants;
     return SelectorEngine.findOne(SELECTOR_ACTIVE_ITEM, this._element);
   }
   _getItems() {
+    const {
+      SELECTOR_ITEM
+    } = this.constructor.ConfigConstants;
     return SelectorEngine.find(SELECTOR_ITEM, this._element);
   }
   _clearInterval() {
@@ -1786,13 +1819,21 @@ class Carousel extends BaseComponent {
     if (typeof document === 'undefined') {
       return;
     }
+    const Class = this;
+    const {
+      CLASS_NAME_CAROUSEL,
+      EVENT_CLICK_DATA_API,
+      EVENT_LOAD_DATA_API,
+      SELECTOR_DATA_RIDE,
+      SELECTOR_DATA_SLIDE
+    } = Class.ConfigConstants;
     this._clickHandler = function (event) {
       const target = SelectorEngine.getElementFromSelector(this);
       if (!target || !target.classList.contains(CLASS_NAME_CAROUSEL)) {
         return;
       }
       event.preventDefault();
-      const carousel = Carousel.getOrCreateInstance(target);
+      const carousel = Class.getOrCreateInstance(target);
       const slideIndex = this.getAttribute('data-bs-slide-to');
       if (slideIndex) {
         carousel.to(slideIndex);
@@ -1810,19 +1851,24 @@ class Carousel extends BaseComponent {
     this._loadHandler = () => {
       const carousels = SelectorEngine.find(SELECTOR_DATA_RIDE);
       for (const carousel of carousels) {
-        Carousel.getOrCreateInstance(carousel);
+        Class.getOrCreateInstance(carousel);
       }
     };
-    EventHandler.on(document, EVENT_CLICK_DATA_API$2, SELECTOR_DATA_SLIDE, this._clickHandler);
-    EventHandler.on(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
+    EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_SLIDE, this._clickHandler);
+    EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler);
     this._isInitialized = true;
   }
   static destroy() {
     if (!this._isInitialized) {
       return;
     }
-    EventHandler.off(document, EVENT_CLICK_DATA_API$2, SELECTOR_DATA_SLIDE, this._clickHandler);
-    EventHandler.off(window, EVENT_LOAD_DATA_API$3, this._loadHandler);
+    const {
+      EVENT_CLICK_DATA_API,
+      EVENT_LOAD_DATA_API,
+      SELECTOR_DATA_SLIDE
+    } = this.ConfigConstants;
+    EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_SLIDE, this._clickHandler);
+    EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler);
     this._isInitialized = false;
   }
   static jQueryInterface(config) {
