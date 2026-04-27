@@ -48,6 +48,13 @@
   const CLASS_NAME_START = 'carousel-item-start';
   const CLASS_NAME_NEXT = 'carousel-item-next';
   const CLASS_NAME_PREV = 'carousel-item-prev';
+  const getClassNameTokens = className => className.split(/\s+/).filter(Boolean);
+  const addClassTokens = (element, className) => {
+    getClassNameTokens(className).forEach(token => element.classList.add(token));
+  };
+  const removeClassTokens = (element, className) => {
+    getClassNameTokens(className).forEach(token => element.classList.remove(token));
+  };
   const SELECTOR_ACTIVE = '.active';
   const SELECTOR_ITEM = '.carousel-item';
   const SELECTOR_ACTIVE_ITEM = SELECTOR_ACTIVE + SELECTOR_ITEM;
@@ -288,11 +295,11 @@
         return;
       }
       const activeIndicator = SelectorEngine.findOne(SELECTOR_ACTIVE, this._indicatorsElement);
-      activeIndicator.classList.remove(CLASS_NAME_ACTIVE);
+      removeClassTokens(activeIndicator, CLASS_NAME_ACTIVE);
       activeIndicator.removeAttribute('aria-current');
       const newActiveIndicator = SelectorEngine.findOne(`[data-bs-slide-to="${index}"]`, this._indicatorsElement);
       if (newActiveIndicator) {
-        newActiveIndicator.classList.add(CLASS_NAME_ACTIVE);
+        addClassTokens(newActiveIndicator, CLASS_NAME_ACTIVE);
         newActiveIndicator.setAttribute('aria-current', 'true');
       }
     }
@@ -354,8 +361,9 @@
       nextElement.classList.add(directionalClassName);
       const completeCallBack = () => {
         nextElement.classList.remove(directionalClassName, orderClassName);
-        nextElement.classList.add(CLASS_NAME_ACTIVE);
-        activeElement.classList.remove(CLASS_NAME_ACTIVE, orderClassName, directionalClassName);
+        addClassTokens(nextElement, CLASS_NAME_ACTIVE);
+        removeClassTokens(activeElement, CLASS_NAME_ACTIVE);
+        activeElement.classList.remove(orderClassName, directionalClassName);
         this._isSliding = false;
         triggerEvent(EVENT_SLID);
       };
