@@ -85,17 +85,18 @@
         OPEN_SELECTOR: '.modal.show',
         SELECTOR_DIALOG: '.modal-dialog',
         SELECTOR_MODAL_BODY: '.modal-body',
-        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="modal"]',
+        SELECTOR_DATA_TOGGLE: `[data-bs-toggle="${NAME}"]`,
         DATA_API_KEY: undefined,
         BackdropClass: Backdrop,
         ...overrides
       };
       (_values$DATA_API_KEY = values.DATA_API_KEY) != null ? _values$DATA_API_KEY : values.DATA_API_KEY = '.data-api';
       (_values$EVENT_CLICK_D = values.EVENT_CLICK_DATA_API) != null ? _values$EVENT_CLICK_D : values.EVENT_CLICK_DATA_API = `click${EVENT_KEY}${values.DATA_API_KEY}`;
+      console.log(`Modal.getConfigConstants:`, {
+        values,
+        overrides
+      });
       return values;
-    }
-    static get ConfigConstants() {
-      return this.getConfigConstants();
     }
 
     // Public
@@ -356,6 +357,7 @@
         data.toggle(this);
       };
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._disposeDismissTrigger = componentFunctions_js.enableDismissTrigger(Class);
       this._isInitialized = true;
     }
     static destroy() {
@@ -367,6 +369,8 @@
         SELECTOR_DATA_TOGGLE
       } = this.ConfigConstants;
       EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._disposeDismissTrigger();
+      this._disposeDismissTrigger = null;
       this._isInitialized = false;
     }
     static jQueryInterface(config, relatedTarget) {
@@ -388,10 +392,10 @@
    */
   Modal._isInitialized = false;
   Modal._clickHandler = null;
+  Modal._disposeDismissTrigger = null;
   if (typeof document !== 'undefined') {
     Modal.init();
   }
-  componentFunctions_js.enableDismissTrigger(Modal);
 
   /**
    * jQuery

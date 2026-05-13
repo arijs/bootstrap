@@ -88,7 +88,7 @@ class Modal extends BaseComponent {
       OPEN_SELECTOR: '.modal.show',
       SELECTOR_DIALOG: '.modal-dialog',
       SELECTOR_MODAL_BODY: '.modal-body',
-      SELECTOR_DATA_TOGGLE: '[data-bs-toggle="modal"]',
+      SELECTOR_DATA_TOGGLE: `[data-bs-toggle="${NAME}"]`,
       DATA_API_KEY: undefined,
       BackdropClass: Backdrop,
       ...overrides
@@ -97,11 +97,9 @@ class Modal extends BaseComponent {
     values.DATA_API_KEY ??= '.data-api'
     values.EVENT_CLICK_DATA_API ??= `click${EVENT_KEY}${values.DATA_API_KEY}`
 
-    return values
-  }
+    console.log(`Modal.getConfigConstants:`, {values, overrides})
 
-  static get ConfigConstants() {
-    return this.getConfigConstants()
+    return values
   }
 
   // Public
@@ -351,6 +349,7 @@ class Modal extends BaseComponent {
   // Static
   static _isInitialized = false
   static _clickHandler = null
+  static _disposeDismissTrigger = null
 
   static init() {
     if (this._isInitialized) {
@@ -402,6 +401,9 @@ class Modal extends BaseComponent {
     }
 
     EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+
+    this._disposeDismissTrigger = enableDismissTrigger(Class)
+
     this._isInitialized = true
   }
 
@@ -413,6 +415,10 @@ class Modal extends BaseComponent {
     const { EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE } = this.ConfigConstants
 
     EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
+
+    this._disposeDismissTrigger()
+    this._disposeDismissTrigger = null
+
     this._isInitialized = false
   }
 
@@ -440,8 +446,6 @@ class Modal extends BaseComponent {
 if (typeof document !== 'undefined') {
   Modal.init()
 }
-
-enableDismissTrigger(Modal)
 
 /**
  * jQuery

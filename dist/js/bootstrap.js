@@ -742,6 +742,7 @@
         const parentDefault = parentClass.Default || {};
         const parentDefaultType = parentClass.DefaultType || {};
         const configConstantOverrides = {};
+        let newName = parentClass.NAME;
         const newDefault = {};
         const newDefaultType = {};
 
@@ -752,7 +753,9 @@
         // Classify incoming overrides
         for (const [key, value] of Object.entries(flat)) {
           // If key exists in parent Default or DefaultType, it's an instance option
-          if (key in parentDefault || key in parentDefaultType) {
+          if (key === 'NAME') {
+            newName = value;
+          } else if (key in parentDefault || key in parentDefaultType) {
             newDefault[key] = value;
             // Infer type if not already in DefaultType
             if (!(key in parentDefaultType)) {
@@ -779,20 +782,34 @@
           ...(parentClass.ConfigConstants || {}),
           ...configConstantOverrides
         };
+        console.log(`BaseComponent.extendDefaultConfig: splitOverrides:`, {
+          parentClass,
+          newName,
+          newDefault,
+          newDefaultType,
+          parentClassConfigConstants: parentClass.ConfigConstants,
+          configConstantOverrides,
+          newConfigConstants
+        });
         return {
+          newName,
           newDefault,
           newDefaultType,
           newConfigConstants
         };
       };
       const {
+        newName,
         newDefault,
         newDefaultType,
         newConfigConstants
       } = splitOverrides(overrides);
 
       // Create a new subclass
-      return class extends parentClass {
+      const subClass = class extends parentClass {
+        static get NAME() {
+          return newName;
+        }
         static get Default() {
           return newDefault;
         }
@@ -808,9 +825,16 @@
             ...newConfigConstants,
             ...furtherOverrides
           };
+          console.log(`BaseComponent.extendDefaultConfig: getConfigConstants:`, {
+            parentClass,
+            subClass,
+            merged,
+            furtherOverrides
+          });
           return merged;
         }
       };
+      return subClass;
     }
   }
 
@@ -821,8 +845,8 @@
    * --------------------------------------------------------------------------
    */
 
-  const getSelector = element => {
-    let selector = element.getAttribute('data-bs-target');
+  const getSelector = (element, targetAttrName = 'data-bs-target') => {
+    let selector = element.getAttribute(targetAttrName);
     if (!selector || selector === '#') {
       let hrefAttribute = element.getAttribute('href');
 
@@ -893,12 +917,12 @@
       }
       return null;
     },
-    getElementFromSelector(element) {
-      const selector = getSelector(element);
+    getElementFromSelector(element, targetAttrName) {
+      const selector = getSelector(element, targetAttrName);
       return selector ? SelectorEngine.findOne(selector) : null;
     },
-    getMultipleElementsFromSelector(element) {
-      const selector = getSelector(element);
+    getMultipleElementsFromSelector(element, targetAttrName) {
+      const selector = getSelector(element, targetAttrName);
       return selector ? SelectorEngine.find(selector) : [];
     }
   };
@@ -910,7 +934,9 @@
    * --------------------------------------------------------------------------
    */
 
-  const enableDismissTrigger = (component, method = 'hide') => {
+  const enableDismissTrigger = (component, method = 'hide', {
+    dismissAttrName = 'data-bs-dismiss'
+  } = {}) => {
     if (typeof document === 'undefined') {
       return;
     }
@@ -923,15 +949,23 @@
       if (isDisabled(this)) {
         return;
       }
-      const target = SelectorEngine.getElementFromSelector(this) || this.closest(`.${name}`);
+      const targetFirst = SelectorEngine.getElementFromSelector(this, dismissAttrName);
+      const targetSecond = this.closest(`.${name}`);
+      console.log(`bootstrap util/component-functions.js: enableDismissTrigger: handler:`, {
+        targetFirst,
+        targetSecond,
+        this: this,
+        name
+      });
+      const target = targetFirst || targetSecond;
       const instance = component.getOrCreateInstance(target);
 
       // Method argument is left, for Alert and only, as it doesn't implement the 'hide' method
       instance[method]();
     };
-    EventHandler.on(document, clickEvent, `[data-bs-dismiss="${name}"]`, handler);
+    EventHandler.on(document, clickEvent, `[${dismissAttrName}=".${name}"]`, handler);
     const dispose = () => {
-      EventHandler.off(document, clickEvent, `[data-bs-dismiss="${name}"]`, handler);
+      EventHandler.off(document, clickEvent, `[${dismissAttrName}=".${name}"]`, handler);
     };
     return dispose;
   };
@@ -3030,17 +3064,18 @@
         OPEN_SELECTOR: '.modal.show',
         SELECTOR_DIALOG: '.modal-dialog',
         SELECTOR_MODAL_BODY: '.modal-body',
-        SELECTOR_DATA_TOGGLE: '[data-bs-toggle="modal"]',
+        SELECTOR_DATA_TOGGLE: `[data-bs-toggle="${NAME$7}"]`,
         DATA_API_KEY: undefined,
         BackdropClass: Backdrop,
         ...overrides
       };
       (_values$DATA_API_KEY = values.DATA_API_KEY) != null ? _values$DATA_API_KEY : values.DATA_API_KEY = '.data-api';
       (_values$EVENT_CLICK_D = values.EVENT_CLICK_DATA_API) != null ? _values$EVENT_CLICK_D : values.EVENT_CLICK_DATA_API = `click${EVENT_KEY$4}${values.DATA_API_KEY}`;
+      console.log(`Modal.getConfigConstants:`, {
+        values,
+        overrides
+      });
       return values;
-    }
-    static get ConfigConstants() {
-      return this.getConfigConstants();
     }
 
     // Public
@@ -3301,6 +3336,7 @@
         data.toggle(this);
       };
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._disposeDismissTrigger = enableDismissTrigger(Class);
       this._isInitialized = true;
     }
     static destroy() {
@@ -3312,6 +3348,8 @@
         SELECTOR_DATA_TOGGLE
       } = this.ConfigConstants;
       EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
+      this._disposeDismissTrigger();
+      this._disposeDismissTrigger = null;
       this._isInitialized = false;
     }
     static jQueryInterface(config, relatedTarget) {
@@ -3333,10 +3371,10 @@
    */
   Modal._isInitialized = false;
   Modal._clickHandler = null;
+  Modal._disposeDismissTrigger = null;
   if (typeof document !== 'undefined') {
     Modal.init();
   }
-  enableDismissTrigger(Modal);
 
   /**
    * jQuery

@@ -100,6 +100,7 @@ class BaseComponent extends Config {
       const parentDefaultType = parentClass.DefaultType || {}
       const configConstantOverrides = {}
 
+      let newName = parentClass.NAME
       const newDefault = {}
       const newDefaultType = {}
 
@@ -110,7 +111,9 @@ class BaseComponent extends Config {
       // Classify incoming overrides
       for (const [key, value] of Object.entries(flat)) {
         // If key exists in parent Default or DefaultType, it's an instance option
-        if (key in parentDefault || key in parentDefaultType) {
+        if (key === 'NAME') {
+          newName = value
+        } else if (key in parentDefault || key in parentDefaultType) {
           newDefault[key] = value
           // Infer type if not already in DefaultType
           if (!(key in parentDefaultType)) {
@@ -137,13 +140,19 @@ class BaseComponent extends Config {
         ? parentClass.getConfigConstants(configConstantOverrides)
         : { ...(parentClass.ConfigConstants || {}), ...configConstantOverrides }
 
-      return { newDefault, newDefaultType, newConfigConstants }
+      console.log(`BaseComponent.extendDefaultConfig: splitOverrides:`, { parentClass, newName, newDefault, newDefaultType, parentClassConfigConstants: parentClass.ConfigConstants, configConstantOverrides, newConfigConstants })
+
+      return { newName, newDefault, newDefaultType, newConfigConstants }
     }
 
-    const { newDefault, newDefaultType, newConfigConstants } = splitOverrides(overrides)
+    const { newName, newDefault, newDefaultType, newConfigConstants } = splitOverrides(overrides)
 
     // Create a new subclass
-    return class extends parentClass {
+    const subClass = class extends parentClass {
+      static get NAME() {
+        return newName
+      }
+
       static get Default() {
         return newDefault
       }
@@ -159,9 +168,11 @@ class BaseComponent extends Config {
       static getConfigConstants(furtherOverrides = {}) {
         // Support chaining: if someone calls getConfigConstants on the returned subclass
         const merged = { ...newConfigConstants, ...furtherOverrides }
+        console.log(`BaseComponent.extendDefaultConfig: getConfigConstants:`, { parentClass, subClass, merged, furtherOverrides })
         return merged
       }
     }
+    return subClass
   }
 }
 

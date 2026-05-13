@@ -7,8 +7,8 @@
 
 import { isDisabled, isVisible, parseSelector } from '../util/index.js'
 
-const getSelector = element => {
-  let selector = element.getAttribute('data-bs-target')
+const getSelector = (element, targetAttrName = 'data-bs-target') => {
+  let selector = element.getAttribute(targetAttrName)
 
   if (!selector || selector === '#') {
     let hrefAttribute = element.getAttribute('href')
@@ -110,14 +110,14 @@ const SelectorEngine = {
     return null
   },
 
-  getElementFromSelector(element) {
-    const selector = getSelector(element)
+  getElementFromSelector(element, targetAttrName) {
+    const selector = getSelector(element, targetAttrName)
 
     return selector ? SelectorEngine.findOne(selector) : null
   },
 
-  getMultipleElementsFromSelector(element) {
-    const selector = getSelector(element)
+  getMultipleElementsFromSelector(element, targetAttrName) {
+    const selector = getSelector(element, targetAttrName)
 
     return selector ? SelectorEngine.find(selector) : []
   }
