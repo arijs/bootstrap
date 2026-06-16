@@ -27,19 +27,25 @@ const enableDismissTrigger = (component, method = 'hide', {
       return
     }
 
-    const targetFirst = SelectorEngine.getElementFromSelector(this, dismissAttrName)
-    const targetSecond = this.closest(`.${name}`)
-    console.log(`bootstrap util/component-functions.js: enableDismissTrigger: handler:`, { targetFirst, targetSecond, this: this, name })
-    const target = targetFirst || targetSecond
+    // Resolve the target in priority order: an explicit data-bs-target (upstream
+    // convention), the dismiss value treated as a selector (VE convention, e.g.
+    // `.${hash}`), then the closest `.${name}` ancestor.
+    const target =
+      SelectorEngine.getElementFromSelector(this) ||
+      SelectorEngine.getElementFromSelector(this, dismissAttrName) ||
+      this.closest(`.${name}`)
     const instance = component.getOrCreateInstance(target)
 
     // Method argument is left, for Alert and only, as it doesn't implement the 'hide' method
     const result = instance[method]()
   }
 
-  EventHandler.on(document, clickEvent, `[${dismissAttrName}=".${name}"]`, handler)
+  // Match both the upstream convention (`data-bs-dismiss="name"`) and the VE convention
+  // (`data-bs-dismiss=".name"`, a class selector targeting the hashed contract class).
+  const dismissSelector = `[${dismissAttrName}="${name}"],[${dismissAttrName}=".${name}"]`
+  EventHandler.on(document, clickEvent, dismissSelector, handler)
   const dispose = () => {
-    EventHandler.off(document, clickEvent, `[${dismissAttrName}=".${name}"]`, handler)
+    EventHandler.off(document, clickEvent, dismissSelector, handler)
   }
 
   return dispose

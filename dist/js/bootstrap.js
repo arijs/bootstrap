@@ -742,7 +742,16 @@
         const parentDefault = parentClass.Default || {};
         const parentDefaultType = parentClass.DefaultType || {};
         const configConstantOverrides = {};
-        let newName = parentClass.NAME;
+
+        // The base NAME getter throws "you must implement NAME" by design. extendDefaultConfig
+        // may be called on a class that hasn't implemented it (overrides usually supply NAME),
+        // so read it defensively and fall back to undefined.
+        let newName;
+        try {
+          newName = parentClass.NAME;
+        } catch (_unused) {
+          newName = undefined;
+        }
         const newDefault = {};
         const newDefaultType = {};
 
@@ -782,15 +791,6 @@
           ...(parentClass.ConfigConstants || {}),
           ...configConstantOverrides
         };
-        console.log(`BaseComponent.extendDefaultConfig: splitOverrides:`, {
-          parentClass,
-          newName,
-          newDefault,
-          newDefaultType,
-          parentClassConfigConstants: parentClass.ConfigConstants,
-          configConstantOverrides,
-          newConfigConstants
-        });
         return {
           newName,
           newDefault,
@@ -825,12 +825,6 @@
             ...newConfigConstants,
             ...furtherOverrides
           };
-          console.log(`BaseComponent.extendDefaultConfig: getConfigConstants:`, {
-            parentClass,
-            subClass,
-            merged,
-            furtherOverrides
-          });
           return merged;
         }
       };
@@ -949,23 +943,23 @@
       if (isDisabled(this)) {
         return;
       }
-      const targetFirst = SelectorEngine.getElementFromSelector(this, dismissAttrName);
-      const targetSecond = this.closest(`.${name}`);
-      console.log(`bootstrap util/component-functions.js: enableDismissTrigger: handler:`, {
-        targetFirst,
-        targetSecond,
-        this: this,
-        name
-      });
-      const target = targetFirst || targetSecond;
+
+      // Resolve the target in priority order: an explicit data-bs-target (upstream
+      // convention), the dismiss value treated as a selector (VE convention, e.g.
+      // `.${hash}`), then the closest `.${name}` ancestor.
+      const target = SelectorEngine.getElementFromSelector(this) || SelectorEngine.getElementFromSelector(this, dismissAttrName) || this.closest(`.${name}`);
       const instance = component.getOrCreateInstance(target);
 
       // Method argument is left, for Alert and only, as it doesn't implement the 'hide' method
       instance[method]();
     };
-    EventHandler.on(document, clickEvent, `[${dismissAttrName}=".${name}"]`, handler);
+
+    // Match both the upstream convention (`data-bs-dismiss="name"`) and the VE convention
+    // (`data-bs-dismiss=".name"`, a class selector targeting the hashed contract class).
+    const dismissSelector = `[${dismissAttrName}="${name}"],[${dismissAttrName}=".${name}"]`;
+    EventHandler.on(document, clickEvent, dismissSelector, handler);
     const dispose = () => {
-      EventHandler.off(document, clickEvent, `[${dismissAttrName}=".${name}"]`, handler);
+      EventHandler.off(document, clickEvent, dismissSelector, handler);
     };
     return dispose;
   };
@@ -3071,10 +3065,6 @@
       };
       (_values$DATA_API_KEY = values.DATA_API_KEY) != null ? _values$DATA_API_KEY : values.DATA_API_KEY = '.data-api';
       (_values$EVENT_CLICK_D = values.EVENT_CLICK_DATA_API) != null ? _values$EVENT_CLICK_D : values.EVENT_CLICK_DATA_API = `click${EVENT_KEY$4}${values.DATA_API_KEY}`;
-      console.log(`Modal.getConfigConstants:`, {
-        values,
-        overrides
-      });
       return values;
     }
 
@@ -3099,7 +3089,12 @@
       this._isShown = true;
       this._isTransitioning = true;
       this._scrollBar.hide();
-      document.body.classList.add(CLASS_NAME_OPEN);
+
+      // CLASS_NAME_OPEN may be a space-separated list (e.g. a theme scope class plus the
+      // modal-open hook) so the body matches theme-scoped `${scope}${modalOpenHook}` rules
+      // instead of a single global hook shared across themes. classList.add/remove reject
+      // tokens containing spaces, so split first.
+      document.body.classList.add(...CLASS_NAME_OPEN.split(' ').filter(Boolean));
       this._adjustDialog();
       this._backdrop.show(() => this._showElement(relatedTarget));
     }
@@ -3231,7 +3226,7 @@
       this._element.removeAttribute('role');
       this._isTransitioning = false;
       this._backdrop.hide(() => {
-        document.body.classList.remove(CLASS_NAME_OPEN);
+        document.body.classList.remove(...CLASS_NAME_OPEN.split(' ').filter(Boolean));
         this._resetAdjustments();
         this._scrollBar.reset();
         EventHandler.trigger(this._element, EVENT_HIDDEN);

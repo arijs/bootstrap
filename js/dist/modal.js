@@ -92,10 +92,6 @@
       };
       (_values$DATA_API_KEY = values.DATA_API_KEY) != null ? _values$DATA_API_KEY : values.DATA_API_KEY = '.data-api';
       (_values$EVENT_CLICK_D = values.EVENT_CLICK_DATA_API) != null ? _values$EVENT_CLICK_D : values.EVENT_CLICK_DATA_API = `click${EVENT_KEY}${values.DATA_API_KEY}`;
-      console.log(`Modal.getConfigConstants:`, {
-        values,
-        overrides
-      });
       return values;
     }
 
@@ -120,7 +116,12 @@
       this._isShown = true;
       this._isTransitioning = true;
       this._scrollBar.hide();
-      document.body.classList.add(CLASS_NAME_OPEN);
+
+      // CLASS_NAME_OPEN may be a space-separated list (e.g. a theme scope class plus the
+      // modal-open hook) so the body matches theme-scoped `${scope}${modalOpenHook}` rules
+      // instead of a single global hook shared across themes. classList.add/remove reject
+      // tokens containing spaces, so split first.
+      document.body.classList.add(...CLASS_NAME_OPEN.split(' ').filter(Boolean));
       this._adjustDialog();
       this._backdrop.show(() => this._showElement(relatedTarget));
     }
@@ -252,7 +253,7 @@
       this._element.removeAttribute('role');
       this._isTransitioning = false;
       this._backdrop.hide(() => {
-        document.body.classList.remove(CLASS_NAME_OPEN);
+        document.body.classList.remove(...CLASS_NAME_OPEN.split(' ').filter(Boolean));
         this._resetAdjustments();
         this._scrollBar.reset();
         EventHandler.trigger(this._element, EVENT_HIDDEN);

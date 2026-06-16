@@ -100,7 +100,15 @@ class BaseComponent extends Config {
       const parentDefaultType = parentClass.DefaultType || {}
       const configConstantOverrides = {}
 
-      let newName = parentClass.NAME
+      // The base NAME getter throws "you must implement NAME" by design. extendDefaultConfig
+      // may be called on a class that hasn't implemented it (overrides usually supply NAME),
+      // so read it defensively and fall back to undefined.
+      let newName
+      try {
+        newName = parentClass.NAME
+      } catch {
+        newName = undefined
+      }
       const newDefault = {}
       const newDefaultType = {}
 
@@ -140,8 +148,6 @@ class BaseComponent extends Config {
         ? parentClass.getConfigConstants(configConstantOverrides)
         : { ...(parentClass.ConfigConstants || {}), ...configConstantOverrides }
 
-      console.log(`BaseComponent.extendDefaultConfig: splitOverrides:`, { parentClass, newName, newDefault, newDefaultType, parentClassConfigConstants: parentClass.ConfigConstants, configConstantOverrides, newConfigConstants })
-
       return { newName, newDefault, newDefaultType, newConfigConstants }
     }
 
@@ -168,7 +174,6 @@ class BaseComponent extends Config {
       static getConfigConstants(furtherOverrides = {}) {
         // Support chaining: if someone calls getConfigConstants on the returned subclass
         const merged = { ...newConfigConstants, ...furtherOverrides }
-        console.log(`BaseComponent.extendDefaultConfig: getConfigConstants:`, { parentClass, subClass, merged, furtherOverrides })
         return merged
       }
     }
