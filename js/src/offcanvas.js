@@ -25,26 +25,6 @@ import ScrollBarHelper from './util/scrollbar.js'
 const NAME = 'offcanvas'
 const DATA_KEY = 'bs.offcanvas'
 const EVENT_KEY = `.${DATA_KEY}`
-const DATA_API_KEY = '.data-api'
-const EVENT_LOAD_DATA_API = `load${EVENT_KEY}${DATA_API_KEY}`
-const ESCAPE_KEY = 'Escape'
-
-const CLASS_NAME_SHOW = 'show'
-const CLASS_NAME_SHOWING = 'showing'
-const CLASS_NAME_HIDING = 'hiding'
-const CLASS_NAME_BACKDROP = 'offcanvas-backdrop'
-const OPEN_SELECTOR = '.offcanvas.show'
-
-const EVENT_SHOW = `show${EVENT_KEY}`
-const EVENT_SHOWN = `shown${EVENT_KEY}`
-const EVENT_HIDE = `hide${EVENT_KEY}`
-const EVENT_HIDE_PREVENTED = `hidePrevented${EVENT_KEY}`
-const EVENT_HIDDEN = `hidden${EVENT_KEY}`
-const EVENT_RESIZE = `resize${EVENT_KEY}`
-const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`
-const EVENT_KEYDOWN_DISMISS = `keydown.dismiss${EVENT_KEY}`
-
-const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="offcanvas"]'
 
 const Default = {
   backdrop: true,
@@ -86,30 +66,36 @@ class Offcanvas extends BaseComponent {
   }
 
   static getConfigConstants(overrides = {}) {
-    const defaults = {
-      ESCAPE_KEY,
-      EVENT_LOAD_DATA_API,
-      EVENT_SHOW,
-      EVENT_SHOWN,
-      EVENT_HIDE,
-      EVENT_HIDE_PREVENTED,
-      EVENT_HIDDEN,
-      EVENT_RESIZE,
-      EVENT_CLICK_DATA_API,
-      EVENT_KEYDOWN_DISMISS,
-      CLASS_NAME_SHOW,
-      CLASS_NAME_SHOWING,
-      CLASS_NAME_HIDING,
-      CLASS_NAME_BACKDROP,
-      OPEN_SELECTOR,
-      SELECTOR_DATA_TOGGLE,
-      DATA_API_KEY
+    const values = {
+      ESCAPE_KEY: 'Escape',
+      EVENT_SHOW: `show${EVENT_KEY}`,
+      EVENT_SHOWN: `shown${EVENT_KEY}`,
+      EVENT_HIDE: `hide${EVENT_KEY}`,
+      EVENT_HIDE_PREVENTED: `hidePrevented${EVENT_KEY}`,
+      EVENT_HIDDEN: `hidden${EVENT_KEY}`,
+      EVENT_RESIZE: `resize${EVENT_KEY}`,
+      EVENT_KEYDOWN_DISMISS: `keydown.dismiss${EVENT_KEY}`,
+      EVENT_LOAD_DATA_API: undefined,
+      EVENT_CLICK_DATA_API: undefined,
+      CLASS_NAME_SHOW: 'show',
+      CLASS_NAME_SHOWING: 'showing',
+      CLASS_NAME_HIDING: 'hiding',
+      CLASS_NAME_BACKDROP: 'offcanvas-backdrop',
+      OPEN_SELECTOR: '.offcanvas.show',
+      SELECTOR_DATA_TOGGLE: `[data-bs-toggle="${NAME}"]`,
+      // Responsive offcanvases (e.g. `.offcanvas-lg`) auto-hide when they stop
+      // being position:fixed. Exposed so the VE adapter can match hashed classes.
+      SELECTOR_RESPONSIVE_SHOWN: '[aria-modal][class*=show][class*=offcanvas-]',
+      DATA_API_KEY: undefined,
+      BackdropClass: Backdrop,
+      ...overrides
     }
-    return { ...defaults, ...overrides }
-  }
 
-  static get ConfigConstants() {
-    return this.getConfigConstants()
+    values.DATA_API_KEY ??= '.data-api'
+    values.EVENT_LOAD_DATA_API ??= `load${EVENT_KEY}${values.DATA_API_KEY}`
+    values.EVENT_CLICK_DATA_API ??= `click${EVENT_KEY}${values.DATA_API_KEY}`
+
+    return values
   }
 
   // Public
@@ -121,6 +107,10 @@ class Offcanvas extends BaseComponent {
     if (this._isShown) {
       return
     }
+
+    const {
+      EVENT_SHOW, EVENT_SHOWN, CLASS_NAME_SHOW, CLASS_NAME_SHOWING
+    } = this.constructor.ConfigConstants
 
     const showEvent = EventHandler.trigger(this._element, EVENT_SHOW, { relatedTarget })
 
@@ -157,6 +147,10 @@ class Offcanvas extends BaseComponent {
       return
     }
 
+    const {
+      EVENT_HIDE, EVENT_HIDDEN, CLASS_NAME_SHOW, CLASS_NAME_HIDING
+    } = this.constructor.ConfigConstants
+
     const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE)
 
     if (hideEvent.defaultPrevented) {
@@ -192,6 +186,8 @@ class Offcanvas extends BaseComponent {
 
   // Private
   _initializeBackDrop() {
+    const { EVENT_HIDE_PREVENTED, CLASS_NAME_BACKDROP, BackdropClass } = this.constructor.ConfigConstants
+
     const clickCallback = () => {
       if (this._config.backdrop === 'static') {
         EventHandler.trigger(this._element, EVENT_HIDE_PREVENTED)
@@ -204,7 +200,7 @@ class Offcanvas extends BaseComponent {
     // 'static' option will be translated to true, and booleans will keep their value
     const isVisible = Boolean(this._config.backdrop)
 
-    return new Backdrop({
+    return new BackdropClass({
       className: CLASS_NAME_BACKDROP,
       isVisible,
       isAnimated: true,
@@ -220,6 +216,8 @@ class Offcanvas extends BaseComponent {
   }
 
   _addEventListeners() {
+    const { EVENT_KEYDOWN_DISMISS, ESCAPE_KEY, EVENT_HIDE_PREVENTED } = this.constructor.ConfigConstants
+
     EventHandler.on(this._element, EVENT_KEYDOWN_DISMISS, event => {
       if (event.key !== ESCAPE_KEY) {
         return
@@ -236,6 +234,10 @@ class Offcanvas extends BaseComponent {
 
   // Static
   static _isInitialized = false
+  static _clickHandler = null
+  static _loadHandler = null
+  static _resizeHandler = null
+  static _disposeDismissTrigger = null
 
   static init() {
     if (this._isInitialized) {
@@ -245,6 +247,17 @@ class Offcanvas extends BaseComponent {
     if (typeof document === 'undefined') {
       return
     }
+
+    const Class = this
+    const {
+      EVENT_CLICK_DATA_API,
+      EVENT_LOAD_DATA_API,
+      EVENT_RESIZE,
+      SELECTOR_DATA_TOGGLE,
+      OPEN_SELECTOR,
+      EVENT_HIDDEN,
+      SELECTOR_RESPONSIVE_SHOWN
+    } = Class.ConfigConstants
 
     this._clickHandler = function (event) {
       const target = SelectorEngine.getElementFromSelector(this)
@@ -267,23 +280,23 @@ class Offcanvas extends BaseComponent {
       // avoid conflict when clicking a toggler of an offcanvas, while another is open
       const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR)
       if (alreadyOpen && alreadyOpen !== target) {
-        Offcanvas.getInstance(alreadyOpen).hide()
+        Class.getInstance(alreadyOpen).hide()
       }
 
-      const data = Offcanvas.getOrCreateInstance(target)
+      const data = Class.getOrCreateInstance(target)
       data.toggle(this)
     }
 
     this._loadHandler = () => {
       for (const selector of SelectorEngine.find(OPEN_SELECTOR)) {
-        Offcanvas.getOrCreateInstance(selector).show()
+        Class.getOrCreateInstance(selector).show()
       }
     }
 
     this._resizeHandler = () => {
-      for (const element of SelectorEngine.find('[aria-modal][class*=show][class*=offcanvas-]')) {
+      for (const element of SelectorEngine.find(SELECTOR_RESPONSIVE_SHOWN)) {
         if (getComputedStyle(element).position !== 'fixed') {
-          Offcanvas.getOrCreateInstance(element).hide()
+          Class.getOrCreateInstance(element).hide()
         }
       }
     }
@@ -291,6 +304,9 @@ class Offcanvas extends BaseComponent {
     EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
     EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler)
     EventHandler.on(window, EVENT_RESIZE, this._resizeHandler)
+
+    this._disposeDismissTrigger = enableDismissTrigger(Class)
+
     this._isInitialized = true
   }
 
@@ -299,9 +315,15 @@ class Offcanvas extends BaseComponent {
       return
     }
 
+    const { EVENT_CLICK_DATA_API, EVENT_LOAD_DATA_API, EVENT_RESIZE, SELECTOR_DATA_TOGGLE } = this.ConfigConstants
+
     EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler)
     EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler)
     EventHandler.off(window, EVENT_RESIZE, this._resizeHandler)
+
+    this._disposeDismissTrigger()
+    this._disposeDismissTrigger = null
+
     this._isInitialized = false
   }
 
@@ -329,8 +351,6 @@ class Offcanvas extends BaseComponent {
 if (typeof document !== 'undefined') {
   Offcanvas.init()
 }
-
-enableDismissTrigger(Offcanvas)
 
 /**
  * jQuery

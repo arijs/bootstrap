@@ -24,23 +24,6 @@
   const NAME = 'offcanvas';
   const DATA_KEY = 'bs.offcanvas';
   const EVENT_KEY = `.${DATA_KEY}`;
-  const DATA_API_KEY = '.data-api';
-  const EVENT_LOAD_DATA_API = `load${EVENT_KEY}${DATA_API_KEY}`;
-  const ESCAPE_KEY = 'Escape';
-  const CLASS_NAME_SHOW = 'show';
-  const CLASS_NAME_SHOWING = 'showing';
-  const CLASS_NAME_HIDING = 'hiding';
-  const CLASS_NAME_BACKDROP = 'offcanvas-backdrop';
-  const OPEN_SELECTOR = '.offcanvas.show';
-  const EVENT_SHOW = `show${EVENT_KEY}`;
-  const EVENT_SHOWN = `shown${EVENT_KEY}`;
-  const EVENT_HIDE = `hide${EVENT_KEY}`;
-  const EVENT_HIDE_PREVENTED = `hidePrevented${EVENT_KEY}`;
-  const EVENT_HIDDEN = `hidden${EVENT_KEY}`;
-  const EVENT_RESIZE = `resize${EVENT_KEY}`;
-  const EVENT_CLICK_DATA_API = `click${EVENT_KEY}${DATA_API_KEY}`;
-  const EVENT_KEYDOWN_DISMISS = `keydown.dismiss${EVENT_KEY}`;
-  const SELECTOR_DATA_TOGGLE = '[data-bs-toggle="offcanvas"]';
   const Default = {
     backdrop: true,
     keyboard: true,
@@ -76,32 +59,35 @@
       return NAME;
     }
     static getConfigConstants(overrides = {}) {
-      const defaults = {
-        ESCAPE_KEY,
-        EVENT_LOAD_DATA_API,
-        EVENT_SHOW,
-        EVENT_SHOWN,
-        EVENT_HIDE,
-        EVENT_HIDE_PREVENTED,
-        EVENT_HIDDEN,
-        EVENT_RESIZE,
-        EVENT_CLICK_DATA_API,
-        EVENT_KEYDOWN_DISMISS,
-        CLASS_NAME_SHOW,
-        CLASS_NAME_SHOWING,
-        CLASS_NAME_HIDING,
-        CLASS_NAME_BACKDROP,
-        OPEN_SELECTOR,
-        SELECTOR_DATA_TOGGLE,
-        DATA_API_KEY
-      };
-      return {
-        ...defaults,
+      var _values$DATA_API_KEY, _values$EVENT_LOAD_DA, _values$EVENT_CLICK_D;
+      const values = {
+        ESCAPE_KEY: 'Escape',
+        EVENT_SHOW: `show${EVENT_KEY}`,
+        EVENT_SHOWN: `shown${EVENT_KEY}`,
+        EVENT_HIDE: `hide${EVENT_KEY}`,
+        EVENT_HIDE_PREVENTED: `hidePrevented${EVENT_KEY}`,
+        EVENT_HIDDEN: `hidden${EVENT_KEY}`,
+        EVENT_RESIZE: `resize${EVENT_KEY}`,
+        EVENT_KEYDOWN_DISMISS: `keydown.dismiss${EVENT_KEY}`,
+        EVENT_LOAD_DATA_API: undefined,
+        EVENT_CLICK_DATA_API: undefined,
+        CLASS_NAME_SHOW: 'show',
+        CLASS_NAME_SHOWING: 'showing',
+        CLASS_NAME_HIDING: 'hiding',
+        CLASS_NAME_BACKDROP: 'offcanvas-backdrop',
+        OPEN_SELECTOR: '.offcanvas.show',
+        SELECTOR_DATA_TOGGLE: `[data-bs-toggle="${NAME}"]`,
+        // Responsive offcanvases (e.g. `.offcanvas-lg`) auto-hide when they stop
+        // being position:fixed. Exposed so the VE adapter can match hashed classes.
+        SELECTOR_RESPONSIVE_SHOWN: '[aria-modal][class*=show][class*=offcanvas-]',
+        DATA_API_KEY: undefined,
+        BackdropClass: Backdrop,
         ...overrides
       };
-    }
-    static get ConfigConstants() {
-      return this.getConfigConstants();
+      (_values$DATA_API_KEY = values.DATA_API_KEY) != null ? _values$DATA_API_KEY : values.DATA_API_KEY = '.data-api';
+      (_values$EVENT_LOAD_DA = values.EVENT_LOAD_DATA_API) != null ? _values$EVENT_LOAD_DA : values.EVENT_LOAD_DATA_API = `load${EVENT_KEY}${values.DATA_API_KEY}`;
+      (_values$EVENT_CLICK_D = values.EVENT_CLICK_DATA_API) != null ? _values$EVENT_CLICK_D : values.EVENT_CLICK_DATA_API = `click${EVENT_KEY}${values.DATA_API_KEY}`;
+      return values;
     }
 
     // Public
@@ -112,6 +98,12 @@
       if (this._isShown) {
         return;
       }
+      const {
+        EVENT_SHOW,
+        EVENT_SHOWN,
+        CLASS_NAME_SHOW,
+        CLASS_NAME_SHOWING
+      } = this.constructor.ConfigConstants;
       const showEvent = EventHandler.trigger(this._element, EVENT_SHOW, {
         relatedTarget
       });
@@ -142,6 +134,12 @@
       if (!this._isShown) {
         return;
       }
+      const {
+        EVENT_HIDE,
+        EVENT_HIDDEN,
+        CLASS_NAME_SHOW,
+        CLASS_NAME_HIDING
+      } = this.constructor.ConfigConstants;
       const hideEvent = EventHandler.trigger(this._element, EVENT_HIDE);
       if (hideEvent.defaultPrevented) {
         return;
@@ -170,6 +168,11 @@
 
     // Private
     _initializeBackDrop() {
+      const {
+        EVENT_HIDE_PREVENTED,
+        CLASS_NAME_BACKDROP,
+        BackdropClass
+      } = this.constructor.ConfigConstants;
       const clickCallback = () => {
         if (this._config.backdrop === 'static') {
           EventHandler.trigger(this._element, EVENT_HIDE_PREVENTED);
@@ -180,7 +183,7 @@
 
       // 'static' option will be translated to true, and booleans will keep their value
       const isVisible = Boolean(this._config.backdrop);
-      return new Backdrop({
+      return new BackdropClass({
         className: CLASS_NAME_BACKDROP,
         isVisible,
         isAnimated: true,
@@ -194,6 +197,11 @@
       });
     }
     _addEventListeners() {
+      const {
+        EVENT_KEYDOWN_DISMISS,
+        ESCAPE_KEY,
+        EVENT_HIDE_PREVENTED
+      } = this.constructor.ConfigConstants;
       EventHandler.on(this._element, EVENT_KEYDOWN_DISMISS, event => {
         if (event.key !== ESCAPE_KEY) {
           return;
@@ -215,6 +223,16 @@
       if (typeof document === 'undefined') {
         return;
       }
+      const Class = this;
+      const {
+        EVENT_CLICK_DATA_API,
+        EVENT_LOAD_DATA_API,
+        EVENT_RESIZE,
+        SELECTOR_DATA_TOGGLE,
+        OPEN_SELECTOR,
+        EVENT_HIDDEN,
+        SELECTOR_RESPONSIVE_SHOWN
+      } = Class.ConfigConstants;
       this._clickHandler = function (event) {
         const target = SelectorEngine.getElementFromSelector(this);
         if (['A', 'AREA'].includes(this.tagName)) {
@@ -233,35 +251,44 @@
         // avoid conflict when clicking a toggler of an offcanvas, while another is open
         const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR);
         if (alreadyOpen && alreadyOpen !== target) {
-          Offcanvas.getInstance(alreadyOpen).hide();
+          Class.getInstance(alreadyOpen).hide();
         }
-        const data = Offcanvas.getOrCreateInstance(target);
+        const data = Class.getOrCreateInstance(target);
         data.toggle(this);
       };
       this._loadHandler = () => {
         for (const selector of SelectorEngine.find(OPEN_SELECTOR)) {
-          Offcanvas.getOrCreateInstance(selector).show();
+          Class.getOrCreateInstance(selector).show();
         }
       };
       this._resizeHandler = () => {
-        for (const element of SelectorEngine.find('[aria-modal][class*=show][class*=offcanvas-]')) {
+        for (const element of SelectorEngine.find(SELECTOR_RESPONSIVE_SHOWN)) {
           if (getComputedStyle(element).position !== 'fixed') {
-            Offcanvas.getOrCreateInstance(element).hide();
+            Class.getOrCreateInstance(element).hide();
           }
         }
       };
       EventHandler.on(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
       EventHandler.on(window, EVENT_LOAD_DATA_API, this._loadHandler);
       EventHandler.on(window, EVENT_RESIZE, this._resizeHandler);
+      this._disposeDismissTrigger = componentFunctions_js.enableDismissTrigger(Class);
       this._isInitialized = true;
     }
     static destroy() {
       if (!this._isInitialized) {
         return;
       }
+      const {
+        EVENT_CLICK_DATA_API,
+        EVENT_LOAD_DATA_API,
+        EVENT_RESIZE,
+        SELECTOR_DATA_TOGGLE
+      } = this.ConfigConstants;
       EventHandler.off(document, EVENT_CLICK_DATA_API, SELECTOR_DATA_TOGGLE, this._clickHandler);
       EventHandler.off(window, EVENT_LOAD_DATA_API, this._loadHandler);
       EventHandler.off(window, EVENT_RESIZE, this._resizeHandler);
+      this._disposeDismissTrigger();
+      this._disposeDismissTrigger = null;
       this._isInitialized = false;
     }
     static jQueryInterface(config) {
@@ -282,10 +309,13 @@
    * Data API implementation
    */
   Offcanvas._isInitialized = false;
+  Offcanvas._clickHandler = null;
+  Offcanvas._loadHandler = null;
+  Offcanvas._resizeHandler = null;
+  Offcanvas._disposeDismissTrigger = null;
   if (typeof document !== 'undefined') {
     Offcanvas.init();
   }
-  componentFunctions_js.enableDismissTrigger(Offcanvas);
 
   /**
    * jQuery
